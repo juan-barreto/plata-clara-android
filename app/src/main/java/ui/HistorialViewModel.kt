@@ -19,18 +19,42 @@ class HistorialViewModel : ViewModel() {
     private val _uiState = MutableStateFlow<HistorialUiState>(HistorialUiState.Cargando)
     val uiState: StateFlow<HistorialUiState> = _uiState
 
-    // Carga el historial apenas se crea el ViewModel
     init {
         cargarHistorial()
     }
 
-    private fun cargarHistorial() {
+    fun cargarHistorial() {
         viewModelScope.launch {
+            _uiState.value = HistorialUiState.Cargando
             try {
                 val resultado = RetrofitClient.instance.getHistorial()
                 _uiState.value = HistorialUiState.Exito(resultado)
             } catch (e: Exception) {
                 _uiState.value = HistorialUiState.Error(e.message ?: "Error desconocido")
+            }
+        }
+    }
+
+    // Borra un registro y recarga la lista
+    fun borrarUno(id: Int) {
+        viewModelScope.launch {
+            try {
+                RetrofitClient.instance.borrarCalculo(id)
+                cargarHistorial() // recarga la lista después de borrar
+            } catch (e: Exception) {
+                _uiState.value = HistorialUiState.Error(e.message ?: "Error al borrar")
+            }
+        }
+    }
+
+    // Borra todo y recarga la lista
+    fun borrarTodo() {
+        viewModelScope.launch {
+            try {
+                RetrofitClient.instance.borrarHistorial()
+                cargarHistorial() // recarga la lista después de borrar
+            } catch (e: Exception) {
+                _uiState.value = HistorialUiState.Error(e.message ?: "Error al borrar")
             }
         }
     }

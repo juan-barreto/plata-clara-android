@@ -7,6 +7,8 @@ import com.candlelabs.gestionpersonal.model.HistorialItem
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.DELETE
+import retrofit2.http.Path
 
 interface ApiService {
 
@@ -22,4 +24,14 @@ interface ApiService {
     // Endpoint historial — devuelve la lista completa de cálculos guardados
     @GET("historial")
     suspend fun getHistorial(): List<HistorialItem>
+
+    // Borra un registro específico por id
+    @DELETE("historial/{id}")
+    suspend fun borrarCalculo(@Path("id") id: Int)
+
+    //Borra todo el historial
+    @DELETE("historial")
+    suspend fun borrarHistorial()
 }
+
+
