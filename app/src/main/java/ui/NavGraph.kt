@@ -14,6 +14,8 @@ object Rutas {
     const val DOLAR = "dolar"
     const val ALQUILER = "alquiler"
     const val HISTORIAL = "historial"
+
+    const val INFO = "info"
 }
 
 // El mapa completo de navegación
@@ -34,10 +36,13 @@ fun NavGraph(
             DolarScreen()
         }
         composable(Rutas.ALQUILER) {
-            AlquilerScreen()
+            AlquilerScreen(navController = navController)
         }
         composable(Rutas.HISTORIAL) {
             HistorialScreen()
+        }
+        composable(Rutas.INFO) {
+            InfoScreen()
         }
     }
 }

@@ -26,9 +26,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.navigation.NavController
 @Composable
-fun AlquilerScreen() {
+fun AlquilerScreen(navController: androidx.navigation.NavController) {
 
     val viewModel: AlquilerViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
@@ -41,7 +46,7 @@ fun AlquilerScreen() {
     var indiceSeleccionado by remember { mutableStateOf("ipc") }
 
     // Lista de índices disponibles para el selector
-    val indices = listOf("ipc", "icl", "ripte")
+    val indices = listOf("ipc", "icl")
 
     Column(
         modifier = Modifier
@@ -50,11 +55,23 @@ fun AlquilerScreen() {
         verticalArrangement = Arrangement.spacedBy(12.dp) // espacio entre cada elemento
     ) {
 
-        Text(
-            text = "Calculadora de alquiler",
-            style = MaterialTheme.typography.titleLarge
-        )
-
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Calculadora de alquiler",
+                style = MaterialTheme.typography.titleLarge
+            )
+            IconButton(onClick = { navController.navigate(Rutas.INFO) }) {
+                Icon(
+                    Icons.Filled.Info,
+                    contentDescription = "¿Cómo funciona?",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
         // Campo para el monto del alquiler
         OutlinedTextField(
             value = alquiler,
