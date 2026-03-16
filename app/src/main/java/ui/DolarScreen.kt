@@ -17,7 +17,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.PaddingValues
 
 @Composable
-fun DolarScreen(paddingValues: PaddingValues) {
+fun DolarScreen() {
 
     // Le pide el ViewModel a Android (lo crea si no existe, lo reutiliza si ya existe)
     val viewModel: DolarViewModel = viewModel()
@@ -44,7 +44,7 @@ fun DolarScreen(paddingValues: PaddingValues) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+
             ) {
                 // "items" itera la lista — por cada elemento llama a DolarCard
                 items(cotizaciones) { cotizacion ->
