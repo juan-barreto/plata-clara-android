@@ -9,6 +9,7 @@ import com.candlelabs.gestionpersonal.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import com.candlelabs.gestionpersonal.model.VariacionDolarResponse
 
 // Estado del Home — puede estar cargando, exitoso o con error
 sealed class HomeUiState {
@@ -17,6 +18,8 @@ sealed class HomeUiState {
         val nombre: String,
         val dolarBlue: DolarResponse?,
         val dolarOficial: DolarResponse?,
+        val variacionBlue: VariacionDolarResponse?,
+        val variacionOficial: VariacionDolarResponse?,
         val ipcUltimo: String?
     ) : HomeUiState()
     data class Error(val mensaje: String) : HomeUiState()
@@ -42,25 +45,33 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 val prefs = context.getSharedPreferences("gestion_prefs", Context.MODE_PRIVATE)
                 val nombre = prefs.getString("nombre_usuario", "Usuario") ?: "Usuario"
 
-                // Traemos los dólares
+                // Traemos los dólares actuales
                 val dolares = RetrofitClient.instance.getDolar()
-
-                // Filtramos blue y oficial de la lista
-                // Equivalente en Python:
-                // blue = next((d for d in dolares if d.casa == "blue"), None)
                 val blue = dolares.firstOrNull { it.casa == "blue" }
                 val oficial = dolares.firstOrNull { it.casa == "oficial" }
 
-                // Traemos el IPC — ya tenés el endpoint en tu backend
+                // Traemos la variación del blue y oficial
+                // Si falla (sin historial suficiente) devuelve null — no rompe la app
+                val variacionBlue = try {
+                    RetrofitClient.instance.getVariacionDolar("blue")
+                } catch (e: Exception) { null }
+
+                val variacionOficial = try {
+                    RetrofitClient.instance.getVariacionDolar("oficial")
+                } catch (e: Exception) { null }
+
+                // Traemos el IPC
                 val ipcDatos = RetrofitClient.instance.getIpc()
-                // El IPC viene como lista de [fecha, valor] — tomamos el último
                 val ipcUltimo = ipcDatos.lastOrNull()?.let { item ->
                     "IPC ${item.fecha}: ${String.format("%.1f", item.valor)}%"
                 }
+
                 _uiState.value = HomeUiState.Exito(
                     nombre = nombre,
                     dolarBlue = blue,
                     dolarOficial = oficial,
+                    variacionBlue = variacionBlue,
+                    variacionOficial = variacionOficial,
                     ipcUltimo = ipcUltimo
                 )
             } catch (e: Exception) {
@@ -68,7 +79,6 @@ class HomeViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
-
     // Factory — le dice a Android cómo crear este ViewModel con parámetros
     // Sin esto Android no sabe cómo instanciarlo
     companion object {

@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.compose.ui.graphics.Color
+import com.candlelabs.gestionpersonal.model.VariacionDolarResponse
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -105,7 +107,8 @@ fun HomeScreen(navController: NavController) {
                     IndicadorCard(
                         titulo = "Dólar Blue",
                         compra = blue.compra,
-                        venta = blue.venta
+                        venta = blue.venta ,
+                        variacion = datos.variacionBlue
                     )
                 }
 
@@ -114,7 +117,8 @@ fun HomeScreen(navController: NavController) {
                     IndicadorCard(
                         titulo = "Dólar Oficial",
                         compra = oficial.compra,
-                        venta = oficial.venta
+                        venta = oficial.venta,
+                        variacion = datos.variacionOficial
                     )
                 }
 
@@ -194,27 +198,60 @@ fun HomeScreen(navController: NavController) {
 // Componente reutilizable para cards de dólar
 // Lo separamos porque se repite — DRY (Don't Repeat Yourself)
 @Composable
-fun IndicadorCard(titulo: String, compra: Double, venta: Double) {
+fun IndicadorCard(
+    titulo: String,
+    compra: Double,
+    venta: Double,
+    variacion: VariacionDolarResponse? = null  // null si no hay historial todavía
+) {
+    // Determinamos color y flecha según la variación
+    // Si no hay variación todavía mostramos neutro
+    val (colorVariacion, flecha) = when {
+        variacion == null -> Pair(MaterialTheme.colorScheme.onPrimaryContainer, "")
+        variacion.variacion_porcentual > 0 -> Pair(Color(0xFF16A34A), "↑")  // verde
+        variacion.variacion_porcentual < 0 -> Pair(Color(0xFFDC2626), "↓")  // rojo
+        else -> Pair(MaterialTheme.colorScheme.onPrimaryContainer, "→")      // neutro
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = titulo,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+
+            // Título + variación porcentual
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = titulo,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                // Flecha + porcentaje — solo si hay historial
+                if (variacion != null) {
+                    Text(
+                        text = "$flecha ${String.format("%.2f", variacion.variacion_porcentual)}%",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colorVariacion
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Compra y venta
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                // Compra
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Compra",
@@ -227,7 +264,17 @@ fun IndicadorCard(titulo: String, compra: Double, venta: Double) {
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
+                    // Valor anterior chico — solo si hay historial
+                    if (variacion != null) {
+                        Text(
+                            text = "ant: $${String.format("%.0f", variacion.venta_anterior)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colorVariacion
+                        )
+                    }
                 }
+
+                // Venta
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Venta",
@@ -240,6 +287,14 @@ fun IndicadorCard(titulo: String, compra: Double, venta: Double) {
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
+                    // Valor anterior chico
+                    if (variacion != null) {
+                        Text(
+                            text = "ant: $${String.format("%.0f", variacion.venta_anterior)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colorVariacion
+                        )
+                    }
                 }
             }
         }

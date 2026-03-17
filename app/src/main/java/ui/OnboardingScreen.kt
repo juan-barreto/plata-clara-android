@@ -28,6 +28,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
 
 @Composable
 fun OnboardingScreen(onNombreGuardado: () -> Unit) {
@@ -60,15 +66,18 @@ fun OnboardingScreen(onNombreGuardado: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color(0xFF16A34A))  // mismo verde que el splash
             .padding(32.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
         // Emoji + título
-        Text(
-            text = "🇦🇷",
-            fontSize = 64.sp
+        Icon(
+            imageVector = Icons.Filled.MonetizationOn,
+            contentDescription = "Logo",
+            tint = Color(0xFFFFD700),
+            modifier = Modifier.size(80.dp)
         )
 
         Spacer(modifier = Modifier.height(24.dp))

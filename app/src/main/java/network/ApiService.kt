@@ -5,6 +5,7 @@ import com.candlelabs.gestionpersonal.model.AjusteResponse
 import com.candlelabs.gestionpersonal.model.DolarResponse
 import com.candlelabs.gestionpersonal.model.HistorialItem
 import com.candlelabs.gestionpersonal.model.IpcItem
+import com.candlelabs.gestionpersonal.model.VariacionDolarResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -16,6 +17,9 @@ interface ApiService {
     // Endpoint existente — no se toca
     @GET("dolar")
     suspend fun getDolar(): List<DolarResponse>
+    // Trae la variación de una casa específica — "blue", "oficial", etc.
+    @GET("dolar/variacion/{casa}")
+    suspend fun getVariacionDolar(@Path("casa") casa: String): VariacionDolarResponse
 
     // Endpoint nuevo — POST a /calcular-ajuste
     // @Body le dice a Retrofit que convierta AjusteRequest a JSON automáticamente
