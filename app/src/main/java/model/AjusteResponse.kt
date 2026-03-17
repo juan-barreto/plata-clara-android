@@ -15,5 +15,7 @@ data class AjusteResponse(
 data class AjusteRequest(
     val alquiler: Double,
     val fecha_inicio: String,
-    val indice: String
+    val fecha_firma: String,
+    val indice: String,
+    val periodo: Int
 )

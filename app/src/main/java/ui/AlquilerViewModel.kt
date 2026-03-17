@@ -23,17 +23,16 @@ class AlquilerViewModel : ViewModel() {
     val uiState: StateFlow<AlquilerUiState> = _uiState
 
     // Se llama cuando el usuario aprieta "Calcular"
-    fun calcular(alquiler: Double, fechaInicio: String, indice: String) {
+    fun calcular(alquiler: Double, fechaInicio: String, fechaFirma: String, indice: String, periodo: Int) {
         viewModelScope.launch {
-            // Cambia el estado a cargando mientras espera
             _uiState.value = AlquilerUiState.Cargando
-
             try {
-                // Arma el request con los datos del formulario
                 val request = AjusteRequest(
                     alquiler = alquiler,
                     fecha_inicio = fechaInicio,
-                    indice = indice
+                    fecha_firma = fechaFirma,
+                    indice = indice,
+                    periodo = periodo
                 )
                 val respuesta = RetrofitClient.instance.calcularAjuste(request)
                 _uiState.value = AlquilerUiState.Exito(respuesta)
