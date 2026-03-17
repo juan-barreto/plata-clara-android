@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.GestionPersonalARG" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Splash" parent="Theme.SplashScreen">
+        <!-- Color de fondo mientras Android carga — tu verde -->
+        <item name="windowSplashScreenBackground">#16A34A</item>
+        <!-- El ícono que muestra en ese hueco -->
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <!-- Tema que toma el control después -->
+        <item name="postSplashScreenTheme">@android:style/Theme.DeviceDefault.NoActionBar</item>
+    </style>
 </resources>
