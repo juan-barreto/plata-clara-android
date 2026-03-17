@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -12,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -20,7 +20,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 
-// Modelo del ítem — igual que antes, lo movemos acá porque es de MainScreen
 data class ItemNavegacion(
     val ruta: String,
     val icono: ImageVector,
@@ -30,13 +29,12 @@ data class ItemNavegacion(
 @Composable
 fun MainScreen() {
 
-    // Este navController es INTERNO — solo maneja Dólar/Alquiler/Historial
-    // Es distinto al navController externo que maneja Splash/Main
     val navController = rememberNavController()
 
     val items = listOf(
+        ItemNavegacion(Rutas.HOME, Icons.Filled.Home, "Inicio"),
         ItemNavegacion(Rutas.DOLAR, Icons.Filled.AttachMoney, "Dólar"),
-        ItemNavegacion(Rutas.ALQUILER, Icons.Filled.Home, "Alquiler"),
+        ItemNavegacion(Rutas.ALQUILER, Icons.Filled.HomeWork, "Alquiler"),
         ItemNavegacion(Rutas.HISTORIAL, Icons.Filled.History, "Historial")
     )
 
@@ -61,17 +59,18 @@ fun MainScreen() {
             }
         }
     ) { innerPadding ->
-        // El mapa INTERNO — solo conoce las pantallas con bottom bar
         NavHost(
             navController = navController,
-            startDestination = Rutas.DOLAR,
+            startDestination = Rutas.HOME,
             modifier = Modifier.padding(innerPadding)
         ) {
+            composable(Rutas.HOME) {
+                HomeScreen(navController = navController)
+            }
             composable(Rutas.DOLAR) {
                 DolarScreen()
             }
             composable(Rutas.ALQUILER) {
-                // InfoScreen navega desde Alquiler — necesita el navController interno
                 AlquilerScreen(navController = navController)
             }
             composable(Rutas.HISTORIAL) {

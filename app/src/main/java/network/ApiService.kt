@@ -4,6 +4,7 @@ import com.candlelabs.gestionpersonal.model.AjusteRequest
 import com.candlelabs.gestionpersonal.model.AjusteResponse
 import com.candlelabs.gestionpersonal.model.DolarResponse
 import com.candlelabs.gestionpersonal.model.HistorialItem
+import com.candlelabs.gestionpersonal.model.IpcItem
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -32,6 +33,9 @@ interface ApiService {
     //Borra todo el historial
     @DELETE("historial")
     suspend fun borrarHistorial()
+
+    @GET("ipc")
+    suspend fun getIpc(): List<IpcItem>
 }
 
 

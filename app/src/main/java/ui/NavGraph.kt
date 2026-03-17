@@ -1,18 +1,22 @@
 package com.candlelabs.gestionpersonal.ui
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 
 // Rutas actualizadas — agregamos SPLASH y MAIN
 object Rutas {
-    const val SPLASH    = "splash"   // nueva — pantalla de bienvenida
+    const val SPLASH    = "splash"
+    const val ONBOARDING  = "onboarding"// nueva — pantalla de bienvenida
     const val MAIN      = "main"     // nueva — contenedor con bottom bar
     const val DOLAR     = "dolar"
     const val ALQUILER  = "alquiler"
     const val HISTORIAL = "historial"
     const val INFO      = "info"
+    const val HOME        = "home"
 }
 
 // El mapa EXTERNO — solo conoce Splash y Main
@@ -32,6 +36,16 @@ fun NavGraph(navController: NavHostController) {
                 onSplashTerminado = {
                     navController.navigate(Rutas.MAIN) {
                         popUpTo(Rutas.SPLASH) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(Rutas.ONBOARDING) {
+            OnboardingScreen(
+                onNombreGuardado = {
+                    // Cuando guarda el nombre navega a MAIN y limpia el historial
+                    navController.navigate(Rutas.MAIN) {
+                        popUpTo(Rutas.ONBOARDING) { inclusive = true }
                     }
                 }
             )
