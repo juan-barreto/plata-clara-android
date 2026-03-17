@@ -62,9 +62,17 @@ class HomeViewModel(private val context: Context) : ViewModel() {
 
                 // Traemos el IPC
                 val ipcDatos = RetrofitClient.instance.getIpc()
-                val ipcUltimo = ipcDatos.lastOrNull()?.let { item ->
-                    "IPC ${item.fecha}: ${String.format("%.1f", item.valor)}%"
-                }
+                val ipcUltimo = if (ipcDatos.size >= 2) {
+                    val ultimo = ipcDatos[ipcDatos.size - 1]
+                    val penultimo = ipcDatos[ipcDatos.size - 2]
+                    val variacion = ((ultimo.valor - penultimo.valor) / penultimo.valor) * 100
+                    // Fecha en formato legible — "2026-02-01" → "Feb 2026"
+                    val partes = ultimo.fecha.split("-")
+                    val meses = listOf("","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic")
+                    val mes = meses[partes[1].toInt()]
+                    val anio = partes[0]
+                    "IPC $mes $anio: ${String.format("%.1f", variacion)}%"
+                } else null
 
                 _uiState.value = HomeUiState.Exito(
                     nombre = nombre,

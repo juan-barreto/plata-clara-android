@@ -267,7 +267,7 @@ fun IndicadorCard(
                     // Valor anterior chico — solo si hay historial
                     if (variacion != null) {
                         Text(
-                            text = "ant: $${String.format("%.0f", variacion.venta_anterior)}",
+                            text = "ant: $${String.format("%.0f", variacion.compra_anterior)}",
                             style = MaterialTheme.typography.labelSmall,
                             color = colorVariacion
                         )

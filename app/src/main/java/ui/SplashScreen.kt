@@ -69,7 +69,7 @@ fun SplashScreen(onSplashTerminado: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Gestión Personal",
+            text = "Plata Clara",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
