@@ -12,16 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Calculate
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -147,54 +141,91 @@ fun HomeScreen(navController: NavController) {
                 }
 
                 // — ACCESOS RÁPIDOS —
-                Text(
-                    text = "Accesos rápidos",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                // — ÚLTIMO CÁLCULO —
+                datos.ultimoAlquiler?.let { alquiler ->
 
-                // Botón calcular alquiler
-                Button(
-                    onClick = { navController.navigate(Rutas.ALQUILER) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Filled.Calculate, contentDescription = null)
                     Text(
-                        text = "  Calcular alquiler",
-                        modifier = Modifier.padding(start = 8.dp)
+                        text = "Último cálculo de alquiler",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
-                }
 
-                // Botón cotizaciones
-                OutlinedButton(
-                    onClick = { navController.navigate(Rutas.DOLAR) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Filled.TrendingUp, contentDescription = null)
-                    Text(
-                        text = "  Ver cotizaciones",
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                }
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
 
-                // Botón historial
-                OutlinedButton(
-                    onClick = { navController.navigate(Rutas.HISTORIAL) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Filled.History, contentDescription = null)
-                    Text(
-                        text = "  Historial de cálculos",
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                }
+                            // Índice usado
+                            Text(
+                                text = alquiler.tipo_indice.uppercase(),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Inicial → Ajustado
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "Inicial",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                    Text(
+                                        text = "$${String.format("%.0f", alquiler.alquiler_inicial)}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                }
+
+                                // Flecha central
+                                Text(
+                                    text = "→",
+                                    fontSize = 20.sp,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = "Ajustado",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                    Text(
+                                        text = "$${String.format("%.0f", alquiler.alquiler_final)}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Fecha del cálculo
+                            Text(
+                                text = "Calculado: ${alquiler.fecha_calculo.substring(0, 10)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
+// Componente reutilizable
 // Componente reutilizable para cards de dólar
 // Lo separamos porque se repite — DRY (Don't Repeat Yourself)
 @Composable

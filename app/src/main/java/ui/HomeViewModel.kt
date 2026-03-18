@@ -5,13 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.candlelabs.gestionpersonal.model.DolarResponse
+import com.candlelabs.gestionpersonal.model.HistorialItem
+import com.candlelabs.gestionpersonal.model.VariacionDolarResponse
 import com.candlelabs.gestionpersonal.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import com.candlelabs.gestionpersonal.model.VariacionDolarResponse
 
-// Estado del Home — puede estar cargando, exitoso o con error
 sealed class HomeUiState {
     object Cargando : HomeUiState()
     data class Exito(
@@ -20,14 +20,12 @@ sealed class HomeUiState {
         val dolarOficial: DolarResponse?,
         val variacionBlue: VariacionDolarResponse?,
         val variacionOficial: VariacionDolarResponse?,
-        val ipcUltimo: String?
+        val ipcUltimo: String?,
+        val ultimoAlquiler: HistorialItem?  // nuevo
     ) : HomeUiState()
     data class Error(val mensaje: String) : HomeUiState()
 }
 
-// El ViewModel necesita el Context para leer SharedPreferences
-// Por eso usamos un Factory — Android no nos deja pasarle parámetros directo
-// Equivalente en Python: sería como un constructor con dependencias inyectadas
 class HomeViewModel(private val context: Context) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Cargando)
@@ -41,17 +39,16 @@ class HomeViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             _uiState.value = HomeUiState.Cargando
             try {
-                // Leemos el nombre guardado
+                // Nombre guardado en SharedPreferences
                 val prefs = context.getSharedPreferences("gestion_prefs", Context.MODE_PRIVATE)
                 val nombre = prefs.getString("nombre_usuario", "Usuario") ?: "Usuario"
 
-                // Traemos los dólares actuales
+                // Dólares actuales
                 val dolares = RetrofitClient.instance.getDolar()
                 val blue = dolares.firstOrNull { it.casa == "blue" }
                 val oficial = dolares.firstOrNull { it.casa == "oficial" }
 
-                // Traemos la variación del blue y oficial
-                // Si falla (sin historial suficiente) devuelve null — no rompe la app
+                // Variación — null si no hay historial suficiente
                 val variacionBlue = try {
                     RetrofitClient.instance.getVariacionDolar("blue")
                 } catch (e: Exception) { null }
@@ -60,13 +57,12 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                     RetrofitClient.instance.getVariacionDolar("oficial")
                 } catch (e: Exception) { null }
 
-                // Traemos el IPC
+                // IPC — variación mensual real
                 val ipcDatos = RetrofitClient.instance.getIpc()
                 val ipcUltimo = if (ipcDatos.size >= 2) {
                     val ultimo = ipcDatos[ipcDatos.size - 1]
                     val penultimo = ipcDatos[ipcDatos.size - 2]
                     val variacion = ((ultimo.valor - penultimo.valor) / penultimo.valor) * 100
-                    // Fecha en formato legible — "2026-02-01" → "Feb 2026"
                     val partes = ultimo.fecha.split("-")
                     val meses = listOf("","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic")
                     val mes = meses[partes[1].toInt()]
@@ -74,21 +70,27 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                     "IPC $mes $anio: ${String.format("%.1f", variacion)}%"
                 } else null
 
+                // Último cálculo de alquiler
+                val ultimoAlquiler = try {
+                    val historial = RetrofitClient.instance.getHistorial()
+                    historial.lastOrNull()
+                } catch (e: Exception) { null }
+
                 _uiState.value = HomeUiState.Exito(
                     nombre = nombre,
                     dolarBlue = blue,
                     dolarOficial = oficial,
                     variacionBlue = variacionBlue,
                     variacionOficial = variacionOficial,
-                    ipcUltimo = ipcUltimo
+                    ipcUltimo = ipcUltimo,
+                    ultimoAlquiler = ultimoAlquiler
                 )
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error(e.message ?: "Error desconocido")
             }
         }
     }
-    // Factory — le dice a Android cómo crear este ViewModel con parámetros
-    // Sin esto Android no sabe cómo instanciarlo
+
     companion object {
         fun factory(context: Context) = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
