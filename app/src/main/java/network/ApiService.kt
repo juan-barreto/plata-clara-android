@@ -7,6 +7,14 @@ import com.candlelabs.gestionpersonal.model.HistorialItem
 import com.candlelabs.gestionpersonal.model.IpcItem
 import com.candlelabs.gestionpersonal.model.VariacionDolarResponse
 import com.candlelabs.gestionpersonal.model.HistorialCotizacionItem
+import com.candlelabs.gestionpersonal.model.AsistenteRequest
+import com.candlelabs.gestionpersonal.model.AsistenteResponse
+import com.candlelabs.gestionpersonal.model.MovimientoItem
+import com.candlelabs.gestionpersonal.model.MovimientoRequest
+import com.candlelabs.gestionpersonal.model.MovimientoEditRequest
+import com.candlelabs.gestionpersonal.model.MensajeResponse
+import retrofit2.http.PUT
+import retrofit2.http.Query
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -35,15 +43,35 @@ interface ApiService {
     @DELETE("historial/{id}")
     suspend fun borrarCalculo(@Path("id") id: Int)
 
-    //Borra todo el historial
+    // Borra todo el historial
     @DELETE("historial")
     suspend fun borrarHistorial()
-
+    //Asistente temporal
+    @POST("asistente")
+    suspend fun consultarAsistente(@Body request: AsistenteRequest): AsistenteResponse
     @GET("ipc")
     suspend fun getIpc(): List<IpcItem>
-    //Trae el historial para los graficos de cotizaciones
+    // Trae el historial para los graficos de cotizaciones
     @GET("dolar/historial/{casa}")
     suspend fun getHistorialCotizacion(@Path("casa") casa: String): List<HistorialCotizacionItem>
+    // Endpoints- para presupuesto:
+    // Trae todos los movimientos según el filtro
+// @Query es como ?filtro=mensual en la URL
+// Equivalente en Python: requests.get("/presupuesto", params={"filtro": "mensual"})
+    @GET("presupuesto")
+    suspend fun getPresupuesto(@Query("filtro") filtro: String = "mensual"): List<MovimientoItem>
+
+    // Agrega un movimiento nuevo
+    @POST("presupuesto")
+    suspend fun agregarMovimiento(@Body request: MovimientoRequest): MensajeResponse
+
+    // Edita un movimiento existente
+    @PUT("presupuesto/{id}")
+    suspend fun editarMovimiento(@Path("id") id: Int, @Body request: MovimientoEditRequest): MensajeResponse
+
+    // Borra un movimiento
+    @DELETE("presupuesto/{id}")
+    suspend fun borrarMovimiento(@Path("id") id: Int): MensajeResponse
 }
 
 

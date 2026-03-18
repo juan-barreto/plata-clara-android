@@ -16,7 +16,9 @@ object Rutas {
     const val HISTORIAL  = "historial"
     const val INFO       = "info"
     const val HOME       = "home"
+    const val ASISTENTE = "asistente"
 
+    const val PRESUPUESTO = "presupuesto"
     const val DOLAR_DETALLE = "dolar_detalle/{casa}/{nombre}"
     fun dolarDetalleRuta(casa: String, nombre: String) = "dolar_detalle/$casa/$nombre"
 }
