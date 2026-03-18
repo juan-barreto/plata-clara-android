@@ -68,7 +68,7 @@ fun MainScreen() {
                 HomeScreen(navController = navController)
             }
             composable(Rutas.DOLAR) {
-                DolarScreen()
+                DolarScreen(navController = navController)
             }
             composable(Rutas.ALQUILER) {
                 AlquilerScreen(navController = navController)
@@ -78,6 +78,15 @@ fun MainScreen() {
             }
             composable(Rutas.INFO) {
                 InfoScreen()
+            }
+            composable(Rutas.DOLAR_DETALLE) { backStackEntry ->
+                val casa = backStackEntry.arguments?.getString("casa") ?: ""
+                val nombre = backStackEntry.arguments?.getString("nombre") ?: ""
+                DolarDetalleScreen(
+                    casa = casa,
+                    nombre = nombre,
+                    navController = navController
+                )
             }
         }
     }

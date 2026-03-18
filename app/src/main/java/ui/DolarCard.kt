@@ -1,5 +1,6 @@
 package com.candlelabs.gestionpersonal.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,41 +12,55 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.candlelabs.gestionpersonal.model.DolarResponse
 
-// Recibe UNA cotización y la dibuja como una Card
 @Composable
-fun DolarCard(cotizacion: DolarResponse) {
+fun DolarCard(cotizacion: DolarResponse, navController: NavController) {
 
-    // Card es el contenedor con sombra y bordes redondeados
     Card(
         modifier = Modifier
-            .fillMaxWidth()  // ocupa todo el ancho disponible
-            .padding(horizontal = 16.dp, vertical = 6.dp), // margen exterior
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp) // sombra
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            // clickable hace que la card sea tocable
+            // Equivalente en Python: <a href="..."> en HTML
+            .clickable {
+                navController.navigate(
+                    Rutas.dolarDetalleRuta(
+                        casa = cotizacion.casa,
+                        nombre = cotizacion.nombre
+                    )
+                )
+            },
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
+        Column(modifier = Modifier.padding(16.dp)) {
 
-        // Column apila elementos verticalmente (como un div con flex-direction: column)
-        Column(
-            modifier = Modifier.padding(16.dp) // margen interior
-        ) {
-
-            // Nombre de la cotización (ej: "Dólar Blue")
-            Text(
-                text = cotizacion.nombre,
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            // Row pone elementos horizontalmente (como flex-direction: row)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween // uno a cada extremo
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "Compra: $${cotizacion.compra}")
-                Text(text = "Venta: $${cotizacion.venta}")
+                Text(
+                    text = cotizacion.nombre,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Ver detalle →",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "Compra: $${String.format("%.0f", cotizacion.compra)}")
+                Text(text = "Venta: $${String.format("%.0f", cotizacion.venta)}")
             }
         }
-
     }
 }

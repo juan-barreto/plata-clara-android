@@ -64,4 +64,5 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.compose.ui:ui-text-google-fonts:1.7.8")
+    implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
 }

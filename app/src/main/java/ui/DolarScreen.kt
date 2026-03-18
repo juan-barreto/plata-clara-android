@@ -16,9 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 
 @Composable
-fun DolarScreen() {
+fun DolarScreen(navController: NavController) {
 
     val viewModel: DolarViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
@@ -54,7 +55,7 @@ fun DolarScreen() {
                 }
 
                 items(cotizaciones) { cotizacion ->
-                    DolarCard(cotizacion = cotizacion)
+                    DolarCard(cotizacion = cotizacion, navController = navController)
                 }
             }
         }

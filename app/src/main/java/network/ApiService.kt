@@ -6,6 +6,7 @@ import com.candlelabs.gestionpersonal.model.DolarResponse
 import com.candlelabs.gestionpersonal.model.HistorialItem
 import com.candlelabs.gestionpersonal.model.IpcItem
 import com.candlelabs.gestionpersonal.model.VariacionDolarResponse
+import com.candlelabs.gestionpersonal.model.HistorialCotizacionItem
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -40,6 +41,9 @@ interface ApiService {
 
     @GET("ipc")
     suspend fun getIpc(): List<IpcItem>
+    //Trae el historial para los graficos de cotizaciones
+    @GET("dolar/historial/{casa}")
+    suspend fun getHistorialCotizacion(@Path("casa") casa: String): List<HistorialCotizacionItem>
 }
 
 
