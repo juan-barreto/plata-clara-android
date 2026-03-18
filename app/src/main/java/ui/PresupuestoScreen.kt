@@ -264,135 +264,38 @@ fun PresupuestoScreen() {
                 }
 
                 // — GRÁFICO —
-                if (movimientos.isNotEmpty() && porCategoria.isNotEmpty()) {
+                if (movimientos.isNotEmpty()) {
                     item {
-                        // Toggle torta / línea
+                        // Botones toggle — reemplaza el Switch con emojis
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(text = "🥧", fontSize = 20.sp)
-                            Switch(
-                                checked = !graficoDeTorta,
-                                onCheckedChange = { graficoDeTorta = !it }
+                            FilterChip(
+                                selected = !graficoDeTorta,
+                                onClick = { graficoDeTorta = false },
+                                label = { Text("📈 Balance") }
                             )
-                            Text(text = "📈", fontSize = 20.sp)
+                            FilterChip(
+                                selected = graficoDeTorta,
+                                onClick = { graficoDeTorta = true },
+                                label = { Text("📊 Por semana") }
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        if (graficoDeTorta) {
-                            // Gráfico de torta — representado con barras de progreso por categoría
-                            // Vico no tiene torta nativa, usamos barras de proporción
-                            Card(modifier = Modifier.fillMaxWidth()) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(
-                                        text = "Distribución de gastos",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    porCategoria.forEach { (categoria, monto) ->
-                                        val proporcion = (monto / gastos).toFloat()
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Text(
-                                                text = categoria,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                modifier = Modifier.width(140.dp)
-                                            )
-                                            LinearProgressIndicator(
-                                                progress = { proporcion },
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .height(8.dp),
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                            Text(
-                                                text = "${(proporcion * 100).toInt()}%",
-                                                style = MaterialTheme.typography.labelSmall
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                    }
-                                }
-                            }
-                        } else {
-                            // Gráfico lineal — evolución de gastos vs ingresos
-                            Card(modifier = Modifier.fillMaxWidth()) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(
-                                        text = "Evolución del período",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    // Barras simples ingresos vs gastos
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                        verticalAlignment = Alignment.Bottom
-                                    ) {
-                                        val max = maxOf(ingresos, gastos)
-                                        // Barra ingresos
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Text(
-                                                text = "$${String.format("%,.0f", ingresos)}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = VERDE
-                                            )
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height((120 * (ingresos / max)).dp)
-                                                    .background(
-                                                        VERDE,
-                                                        RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
-                                                    )
-                                            )
-                                            Text(
-                                                text = "Ingresos",
-                                                style = MaterialTheme.typography.labelSmall
-                                            )
-                                        }
-                                        // Barra gastos
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Text(
-                                                text = "$${String.format("%,.0f", gastos)}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = Color(0xFFDC2626)
-                                            )
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height((120 * (gastos / max)).dp)
-                                                    .background(
-                                                        Color(0xFFDC2626),
-                                                        RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
-                                                    )
-                                            )
-                                            Text(
-                                                text = "Gastos",
-                                                style = MaterialTheme.typography.labelSmall
-                                            )
-                                        }
-                                    }
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Box(modifier = Modifier.padding(16.dp)) {
+                                if (graficoDeTorta) {
+                                    GraficoBarrasPorSemana(movimientos = movimientos)
+                                } else {
+                                    GraficoBalanceAcumulado(movimientos = movimientos)
                                 }
                             }
                         }
                     }
                 }
-
                 // — LISTA DE MOVIMIENTOS —
                 item {
                     Text(
