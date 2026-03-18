@@ -21,7 +21,9 @@ sealed class HomeUiState {
         val variacionBlue: VariacionDolarResponse?,
         val variacionOficial: VariacionDolarResponse?,
         val ipcUltimo: String?,
-        val ultimoAlquiler: HistorialItem?  // nuevo
+        val ultimoAlquiler: HistorialItem?,
+        val diasParaAjuste: Long?,
+        val consejo: String
     ) : HomeUiState()
     data class Error(val mensaje: String) : HomeUiState()
 }
@@ -39,16 +41,16 @@ class HomeViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             _uiState.value = HomeUiState.Cargando
             try {
-                // Nombre guardado en SharedPreferences
+                // Nombre
                 val prefs = context.getSharedPreferences("gestion_prefs", Context.MODE_PRIVATE)
                 val nombre = prefs.getString("nombre_usuario", "Usuario") ?: "Usuario"
 
-                // Dólares actuales
+                // Dólares
                 val dolares = RetrofitClient.instance.getDolar()
                 val blue = dolares.firstOrNull { it.casa == "blue" }
                 val oficial = dolares.firstOrNull { it.casa == "oficial" }
 
-                // Variación — null si no hay historial suficiente
+                // Variación
                 val variacionBlue = try {
                     RetrofitClient.instance.getVariacionDolar("blue")
                 } catch (e: Exception) { null }
@@ -57,7 +59,7 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                     RetrofitClient.instance.getVariacionDolar("oficial")
                 } catch (e: Exception) { null }
 
-                // IPC — variación mensual real
+                // IPC
                 val ipcDatos = RetrofitClient.instance.getIpc()
                 val ipcUltimo = if (ipcDatos.size >= 2) {
                     val ultimo = ipcDatos[ipcDatos.size - 1]
@@ -70,12 +72,42 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                     "IPC $mes $anio: ${String.format("%.1f", variacion)}%"
                 } else null
 
-                // Último cálculo de alquiler
-                val ultimoAlquiler = try {
-                    val historial = RetrofitClient.instance.getHistorial()
-                    historial.lastOrNull()
+                // Historial — último alquiler + días para ajuste
+                val historial = try {
+                    RetrofitClient.instance.getHistorial()
+                } catch (e: Exception) { emptyList() }
+
+                val ultimoAlquiler = historial.lastOrNull()
+
+                // Próximo ajuste — asume trimestral por defecto
+                // Próximo ajuste — usando Calendar en vez de java.time (compatible con API 24)
+                // Próximo ajuste — java.time disponible desde minSdk 26
+                val diasParaAjuste: Long? = try {
+                    if (ultimoAlquiler != null) {
+                        val fechaInicio = java.time.LocalDate.parse(ultimoAlquiler.fecha_inicio)
+                        val proximoAjuste = fechaInicio.plusMonths(3)
+                        val hoy = java.time.LocalDate.now()
+                        java.time.temporal.ChronoUnit.DAYS.between(hoy, proximoAjuste)
+                    } else null
                 } catch (e: Exception) { null }
 
+                // Consejo del día — rota según el día del año
+                val consejos = listOf(
+                    "💡 Guardá al menos el 10% de tus ingresos cada mes.",
+                    "💡 El dólar blue no es el único refugio — los plazos fijos UVA también ajustan por inflación.",
+                    "💡 Revisá tu contrato antes de cada ajuste — los errores son más comunes de lo que pensás.",
+                    "💡 Tres gastos hormiga al día pueden sumar más de $50.000 al mes.",
+                    "💡 Si tu alquiler ajusta por IPC, el aumento viene con delay de un mes.",
+                    "💡 El MEP es una alternativa legal para dolarizarte sin salir del sistema bancario.",
+                    "💡 Anotá tus gastos fijos y variables — lo que no medís, no podés controlar.",
+                    "💡 El RIPTE refleja los salarios formales — si tu sueldo no lo sigue, perdés poder adquisitivo.",
+                    "💡 Antes de sacar un préstamo, calculá el costo financiero total, no solo la cuota.",
+                    "💡 Una canasta básica familiar supera los $800.000 — revisá si tu presupuesto la cubre."
+                )
+                val diaDelAnio = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR)
+                val consejo = consejos[diaDelAnio % consejos.size]
+
+                // Todo calculado — actualizamos el estado
                 _uiState.value = HomeUiState.Exito(
                     nombre = nombre,
                     dolarBlue = blue,
@@ -83,7 +115,9 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                     variacionBlue = variacionBlue,
                     variacionOficial = variacionOficial,
                     ipcUltimo = ipcUltimo,
-                    ultimoAlquiler = ultimoAlquiler
+                    ultimoAlquiler = ultimoAlquiler,
+                    diasParaAjuste = diasParaAjuste,
+                    consejo = consejo
                 )
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error(e.message ?: "Error desconocido")

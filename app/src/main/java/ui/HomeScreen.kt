@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,6 +29,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.compose.ui.graphics.Color
 import com.candlelabs.gestionpersonal.model.VariacionDolarResponse
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.candlelabs.gestionpersonal.R
+import androidx.compose.foundation.layout.size
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -86,7 +89,11 @@ fun HomeScreen(navController: NavController) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Text(text = "🇦🇷", fontSize = 32.sp)
+                    Image(
+                        painter = painterResource(id = R.drawable.escudo_arg),
+                        contentDescription = "Escudo argentino",
+                        modifier = Modifier.size(40.dp)
+                    )
                 }
 
                 // — INDICADORES —
@@ -218,6 +225,74 @@ fun HomeScreen(navController: NavController) {
                                 color = MaterialTheme.colorScheme.onTertiaryContainer
                             )
                         }
+                    }
+                }
+                // — PRÓXIMO AJUSTE —
+                datos.diasParaAjuste?.let { dias ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = when {
+                                dias < 0 -> MaterialTheme.colorScheme.errorContainer
+                                dias <= 15 -> MaterialTheme.colorScheme.tertiaryContainer
+                                else -> MaterialTheme.colorScheme.surfaceVariant
+                            }
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Próximo ajuste",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = when {
+                                        dias < 0 -> "Vencido hace ${-dias} días"
+                                        dias == 0L -> "¡Hoy!"
+                                        else -> "En $dias días"
+                                    },
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Text(
+                                text = when {
+                                    dias < 0 -> "⚠️"
+                                    dias <= 15 -> "🔔"
+                                    else -> "📅"
+                                },
+                                fontSize = 28.sp
+                            )
+                        }
+                    }
+                }
+
+// — CONSEJO DEL DÍA —
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Consejo del día",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = datos.consejo,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
