@@ -136,26 +136,56 @@ fun PresupuestoScreen() {
             title = { Text("Exportar presupuesto") },
             text = { Text("¿En qué formato querés exportar el período ${filtroActual}?") },
             confirmButton = {
-                // Excel
-                Button(
-                    onClick = {
-                        viewModel.exportarExcel(context, filtroActual)
-                        mostrarMenuExport = false
-                    },
-                    enabled = !exportando
-                ) {
-                    if (exportando) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = Color.White
-                        )
-                    } else {
-                        Icon(Icons.Filled.TableChart, contentDescription = null,
-                            modifier = Modifier.size(16.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Botón Excel
+                    Button(
+                        onClick = {
+                            viewModel.exportarExcel(context, filtroActual)
+                            mostrarMenuExport = false
+                        },
+                        enabled = !exportando
+                    ) {
+                        if (exportando) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Icon(
+                                Icons.Filled.TableChart,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Excel")
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Excel")
+
+                    // Botón PDF
+                    Button(
+                        onClick = {
+                            viewModel.exportarPdf(context, filtroActual)
+                            mostrarMenuExport = false
+                        },
+                        enabled = !exportando
+                    ) {
+                        if (exportando) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Icon(
+                                Icons.Filled.PictureAsPdf,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("PDF")
+                    }
                 }
             },
             dismissButton = {
@@ -165,6 +195,7 @@ fun PresupuestoScreen() {
             }
         )
     }
+
     // BottomSheet para agregar/editar
     if (mostrarBottomSheet) {
         ModalBottomSheet(

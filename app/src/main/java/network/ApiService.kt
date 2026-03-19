@@ -79,6 +79,9 @@ interface ApiService {
     @Streaming
     @GET("presupuesto/exportar/excel")
     suspend fun exportarExcel(@Query("filtro") filtro: String): retrofit2.Response<okhttp3.ResponseBody>
+    @Streaming
+    @GET("presupuesto/exportar/pdf")
+    suspend fun exportarPdf(@Query("filtro") filtro: String): retrofit2.Response<okhttp3.ResponseBody>
 }
 
 
