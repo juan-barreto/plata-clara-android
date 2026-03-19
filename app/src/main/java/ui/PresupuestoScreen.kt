@@ -25,17 +25,56 @@ import com.candlelabs.gestionpersonal.model.MovimientoItem
 // Categorías disponibles con su emoji
 // Separadas por tipo para mostrar las correctas según lo que el usuario elige
 val CATEGORIAS_INGRESO = listOf(
-    "💼 Sueldo", "💻 Freelance", "💰 Extra",
-    "📈 Inversión", "🎁 Otro ingreso"
+    "Sueldo", "Freelance", "Extra",
+    "Inversión", "Otro ingreso"
 )
 
 val CATEGORIAS_GASTO = listOf(
-    "🏠 Alquiler", "🛒 Supermercado", "🚌 Transporte",
-    "💡 Servicios", "🍕 Comida/Salidas", "💊 Salud",
-    "📱 Tecnología", "🎓 Educación", "🎭 Entretenimiento",
-    "💳 Deudas/Cuotas", "📦 Otro gasto"
+    "Alquiler", "Supermercado", "Transporte",
+    "Servicios", "Comida/Salidas", "Salud",
+    "Tecnología", "Educación", "Entretenimiento",
+    "Deudas/Cuotas", "Otro gasto"
 )
 
+// Mapa categoria → ícono de Material Icons
+val ICONOS_CATEGORIA = mapOf(
+    "Sueldo"          to Icons.Filled.Work,
+    "Freelance"       to Icons.Filled.Laptop,
+    "Extra"           to Icons.Filled.AddCircle,
+    "Inversión"       to Icons.Filled.TrendingUp,
+    "Otro ingreso"    to Icons.Filled.AttachMoney,
+    "Alquiler"        to Icons.Filled.Home,
+    "Supermercado"    to Icons.Filled.ShoppingCart,
+    "Transporte"      to Icons.Filled.DirectionsBus,
+    "Servicios"       to Icons.Filled.Bolt,
+    "Comida/Salidas"  to Icons.Filled.Restaurant,
+    "Salud"           to Icons.Filled.LocalHospital,
+    "Tecnología"      to Icons.Filled.PhoneAndroid,
+    "Educación"       to Icons.Filled.School,
+    "Entretenimiento" to Icons.Filled.TheaterComedy,
+    "Deudas/Cuotas"   to Icons.Filled.CreditCard,
+    "Otro gasto"      to Icons.Filled.Category,
+)
+
+// Mapa categoria → color del círculo
+val COLORES_CATEGORIA = mapOf(
+    "Sueldo"          to Color(0xFF16A34A),
+    "Freelance"       to Color(0xFF0891B2),
+    "Extra"           to Color(0xFF7C3AED),
+    "Inversión"       to Color(0xFFD97706),
+    "Otro ingreso"    to Color(0xFF16A34A),
+    "Alquiler"        to Color(0xFFDC2626),
+    "Supermercado"    to Color(0xFFEA580C),
+    "Transporte"      to Color(0xFF2563EB),
+    "Servicios"       to Color(0xFFF59E0B),
+    "Comida/Salidas"  to Color(0xFFDB2777),
+    "Salud"           to Color(0xFF16A34A),
+    "Tecnología"      to Color(0xFF6366F1),
+    "Educación"       to Color(0xFF0891B2),
+    "Entretenimiento" to Color(0xFF7C3AED),
+    "Deudas/Cuotas"   to Color(0xFFDC2626),
+    "Otro gasto"      to Color(0xFF6B7280),
+)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PresupuestoScreen() {
@@ -380,6 +419,8 @@ fun FilaMovimiento(
     onBorrar: () -> Unit
 ) {
     val esIngreso = movimiento.tipo == "ingreso"
+    val icono = ICONOS_CATEGORIA[movimiento.categoria] ?: Icons.Filled.AttachMoney
+    val colorIcono = COLORES_CATEGORIA[movimiento.categoria] ?: Color(0xFF6B7280)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -389,10 +430,26 @@ fun FilaMovimiento(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Categoría y descripción
+            // Círculo con ícono de la categoría
+            Surface(
+                shape = androidx.compose.foundation.shape.CircleShape,
+                color = colorIcono.copy(alpha = 0.15f),
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icono,
+                        contentDescription = movimiento.categoria,
+                        tint = colorIcono,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            // Categoría, descripción y fecha
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = movimiento.categoria,
@@ -413,15 +470,15 @@ fun FilaMovimiento(
                 )
             }
 
-            // Monto con color según tipo
+            // Monto con color
             Text(
                 text = "${if (esIngreso) "+" else "-"}$${String.format("%,.0f", movimiento.monto)}",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = if (esIngreso) VERDE else Color(0xFFDC2626)
+                color = if (esIngreso) Color(0xFF16A34A) else Color(0xFFDC2626)
             )
 
-            // Botones editar y borrar
+            // Botones
             Row {
                 IconButton(onClick = onEditar, modifier = Modifier.size(32.dp)) {
                     Icon(
@@ -485,7 +542,7 @@ fun FormularioMovimiento(
                         categoria = "" // limpia la categoría al cambiar tipo
                     },
                     label = {
-                        Text(if (opcion == "ingreso") "💚 Ingreso" else "🔴 Gasto")
+                        Text(if (opcion == "ingreso") "🟢 Ingreso" else "🔴 Gasto")
                     }
                 )
             }
