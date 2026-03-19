@@ -182,17 +182,17 @@ fun GraficoBalanceAcumulado(movimientos: List<MovimientoItem>) {
 }
 
 // ── GRÁFICO 2 — BARRAS POR SEMANA ────────
+// Agrupamos por semana del mes (1, 2, 3, 4)
+// Equivalente en Python:
+// semanas = defaultdict(lambda: {'ingreso': 0, 'gasto': 0})
+// for m in movimientos:
+//     semana = (dia - 1) // 7 + 1
+//     semanas[semana][m['tipo']] += m['monto']
 @Composable
 fun GraficoBarrasPorSemana(movimientos: List<MovimientoItem>) {
 
-    // Agrupamos por semana del mes (1, 2, 3, 4)
-    // Equivalente en Python:
-    // semanas = defaultdict(lambda: {'ingreso': 0, 'gasto': 0})
-    // for m in movimientos:
-    //     semana = (dia - 1) // 7 + 1
-    //     semanas[semana][m['tipo']] += m['monto']
     val porSemana = remember(movimientos) {
-        val mapa = mutableMapOf<Int, Pair<Double, Double>>() // semana → (ingresos, gastos)
+        val mapa = mutableMapOf<Int, Pair<Double, Double>>()
         movimientos.forEach { mov ->
             try {
                 val fecha = LocalDate.parse(mov.fecha.substring(0, 10))
@@ -203,7 +203,8 @@ fun GraficoBarrasPorSemana(movimientos: List<MovimientoItem>) {
                 } else {
                     Pair(actual.first, actual.second + mov.monto)
                 }
-            } catch (e: Exception) { }
+            } catch (e: Exception) {
+            }
         }
         mapa.toSortedMap()
     }
@@ -231,52 +232,91 @@ fun GraficoBarrasPorSemana(movimientos: List<MovimientoItem>) {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(180.dp)
+                .height(200.dp)
                 .padding(horizontal = 8.dp)
         ) {
             val ancho = size.width
             val alto = size.height
-            val paddingBottom = 24f
-            val altoUtil = alto - paddingBottom
+            val paddingBottom = 32f
+            val paddingTop = 24f
+            val altoUtil = alto - paddingBottom - paddingTop
 
             val semanas = porSemana.keys.toList()
             val cantidadSemanas = semanas.size
-            // Ancho de cada grupo de 2 barras
             val anchoGrupo = ancho / cantidadSemanas
-            // Ancho de cada barra individual — 35% del grupo con espacio entre ellas
-            val anchoBarra = anchoGrupo * 0.35f
-            val espacioEntreBarras = anchoGrupo * 0.05f
+            val anchoBarra = anchoGrupo * 0.32f
+            val espacioEntreBarras = anchoGrupo * 0.06f
+            val radio = 12f // radio de esquinas redondeadas
+
+            val paintTexto = android.graphics.Paint().apply {
+                color = android.graphics.Color.GRAY
+                textSize = 26f
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
+
+            val paintValor = android.graphics.Paint().apply {
+                color = android.graphics.Color.DKGRAY
+                textSize = 22f
+                textAlign = android.graphics.Paint.Align.CENTER
+                isFakeBoldText = true
+            }
 
             semanas.forEachIndexed { index, semana ->
                 val (ingresos, gastos) = porSemana[semana] ?: return@forEachIndexed
                 val xBase = index * anchoGrupo + anchoGrupo * 0.1f
 
-                // Barra de ingresos (verde)
-                val alturaIngreso = if (maxValor > 0) (altoUtil * (ingresos / maxValor)).toFloat() else 0f
-                drawRect(
+                // — Barra ingresos redondeada —
+                val alturaIngreso = if (maxValor > 0)
+                    (altoUtil * (ingresos / maxValor)).toFloat() else 0f
+                val yIngreso = paddingTop + altoUtil - alturaIngreso
+
+                drawRoundRect(
                     color = ColorVerde,
-                    topLeft = Offset(xBase, altoUtil - alturaIngreso),
-                    size = Size(anchoBarra, alturaIngreso)
+                    topLeft = Offset(xBase, yIngreso),
+                    size = Size(anchoBarra, alturaIngreso),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(radio, radio)
                 )
 
-                // Barra de gastos (roja)
-                val alturaGasto = if (maxValor > 0) (altoUtil * (gastos / maxValor)).toFloat() else 0f
-                drawRect(
+                // Valor encima de la barra de ingresos
+                if (ingresos > 0) {
+                    val valorFormateado = "$${String.format("%,.0f", ingresos / 1000)}k"
+                    drawContext.canvas.nativeCanvas.drawText(
+                        valorFormateado,
+                        xBase + anchoBarra / 2,
+                        yIngreso - 6f,
+                        paintValor
+                    )
+                }
+
+                // — Barra gastos redondeada —
+                val alturaGasto = if (maxValor > 0)
+                    (altoUtil * (gastos / maxValor)).toFloat() else 0f
+                val yGasto = paddingTop + altoUtil - alturaGasto
+
+                drawRoundRect(
                     color = ColorRojo,
-                    topLeft = Offset(xBase + anchoBarra + espacioEntreBarras, altoUtil - alturaGasto),
-                    size = Size(anchoBarra, alturaGasto)
+                    topLeft = Offset(xBase + anchoBarra + espacioEntreBarras, yGasto),
+                    size = Size(anchoBarra, alturaGasto),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(radio, radio)
                 )
 
-                // Etiqueta "Sem X" abajo
+                // Valor encima de la barra de gastos
+                if (gastos > 0) {
+                    val valorFormateado = "$${String.format("%,.0f", gastos / 1000)}k"
+                    drawContext.canvas.nativeCanvas.drawText(
+                        valorFormateado,
+                        xBase + anchoBarra + espacioEntreBarras + anchoBarra / 2,
+                        yGasto - 6f,
+                        paintValor
+                    )
+                }
+
+                // Etiqueta semana abajo — "Sem 1", "Sem 2"...
                 drawContext.canvas.nativeCanvas.drawText(
-                    "S$semana",
-                    xBase + anchoBarra / 2,
-                    alto - 4f,
-                    android.graphics.Paint().apply {
-                        color = android.graphics.Color.GRAY
-                        textSize = 28f
-                        textAlign = android.graphics.Paint.Align.CENTER
-                    }
+                    "Sem $semana",
+                    xBase + anchoBarra + espacioEntreBarras / 2,
+                    alto - 8f,
+                    paintTexto
                 )
             }
         }
@@ -284,23 +324,33 @@ fun GraficoBarrasPorSemana(movimientos: List<MovimientoItem>) {
         // Leyenda
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(modifier = Modifier.size(10.dp).padding(end = 4.dp),
-                contentAlignment = Alignment.Center) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Canvas(modifier = Modifier.size(10.dp)) {
-                    drawRect(color = ColorVerde)
+                    drawRoundRect(
+                        color = ColorVerde,
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f)
+                    )
                 }
+                Text(text = "Ingresos", style = MaterialTheme.typography.labelSmall)
             }
-            Text(text = " Ingresos  ", style = MaterialTheme.typography.labelSmall)
-            Box(modifier = Modifier.size(10.dp),
-                contentAlignment = Alignment.Center) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Canvas(modifier = Modifier.size(10.dp)) {
-                    drawRect(color = ColorRojo)
+                    drawRoundRect(
+                        color = ColorRojo,
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f)
+                    )
                 }
+                Text(text = "Gastos", style = MaterialTheme.typography.labelSmall)
             }
-            Text(text = " Gastos", style = MaterialTheme.typography.labelSmall)
         }
     }
 }
