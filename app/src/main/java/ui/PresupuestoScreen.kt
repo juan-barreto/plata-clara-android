@@ -25,6 +25,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.candlelabs.gestionpersonal.model.MovimientoItem
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 // Categorías disponibles con su emoji
 // Separadas por tipo para mostrar las correctas según lo que el usuario elige
@@ -197,32 +201,43 @@ fun PresupuestoScreen() {
     }
 
     // BottomSheet para agregar/editar
+    // BottomSheet para agregar/editar
     if (mostrarBottomSheet) {
-        ModalBottomSheet(
+        Dialog(
             onDismissRequest = {
                 mostrarBottomSheet = false
                 movimientoEditando = null
-            }
+            },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
-            FormularioMovimiento(
-                movimientoInicial = movimientoEditando,
-                onGuardar = { tipo, categoria, descripcion, monto ->
-                    if (movimientoEditando != null) {
-                        viewModel.editarMovimiento(
-                            movimientoEditando!!.id,
-                            tipo, categoria, descripcion, monto
-                        )
-                    } else {
-                        viewModel.agregarMovimiento(tipo, categoria, descripcion, monto)
+            // Surface le da fondo blanco y bordes redondeados al Dialog
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                FormularioMovimiento(
+                    movimientoInicial = movimientoEditando,
+                    onGuardar = { tipo, categoria, descripcion, monto ->
+                        if (movimientoEditando != null) {
+                            viewModel.editarMovimiento(
+                                movimientoEditando!!.id,
+                                tipo, categoria, descripcion, monto
+                            )
+                        } else {
+                            viewModel.agregarMovimiento(tipo, categoria, descripcion, monto)
+                        }
+                        mostrarBottomSheet = false
+                        movimientoEditando = null
+                    },
+                    onCancelar = {
+                        mostrarBottomSheet = false
+                        movimientoEditando = null
                     }
-                    mostrarBottomSheet = false
-                    movimientoEditando = null
-                },
-                onCancelar = {
-                    mostrarBottomSheet = false
-                    movimientoEditando = null
-                }
-            )
+                )
+            }
         }
     }
     mensajeExport?.let { mensaje ->
@@ -630,8 +645,9 @@ fun FormularioMovimiento(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
+            .imePadding(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(

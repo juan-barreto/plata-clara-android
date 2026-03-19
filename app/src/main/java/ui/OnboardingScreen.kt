@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.imePadding
 
 @Composable
 fun OnboardingScreen(onNombreGuardado: () -> Unit) {
@@ -57,7 +58,8 @@ fun OnboardingScreen(onNombreGuardado: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF16A34A))
-            .padding(32.dp),
+            .padding(32.dp)
+            .imePadding(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

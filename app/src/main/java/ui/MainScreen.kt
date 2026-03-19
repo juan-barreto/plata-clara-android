@@ -16,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.foundation.layout.statusBarsPadding
 
 data class ItemNavegacion(
     val ruta: String,
@@ -38,7 +39,6 @@ fun MainScreen() {
     val navController = rememberNavController()
     var mostrarMenuMas by remember { mutableStateOf(false) }
 
-    // Solo 4 ítems en el nav bar
     val items = listOf(
         ItemNavegacion(Rutas.HOME, Icons.Filled.Home, "Inicio"),
         ItemNavegacion(Rutas.DOLAR, Icons.Filled.AttachMoney, "Dólar"),
@@ -46,7 +46,6 @@ fun MainScreen() {
         ItemNavegacion(Rutas.ASISTENTE, Icons.Filled.SmartToy, "Clara"),
     )
 
-    // Ítems del menú "Más"
     val itemsMas = listOf(
         ItemMas(Rutas.PRESUPUESTO, Icons.Filled.AccountBalanceWallet, "Presupuesto", "Ingresos y gastos"),
         ItemMas(Rutas.HISTORIAL, Icons.Filled.History, "Historial", "Cálculos de alquiler"),
@@ -56,7 +55,6 @@ fun MainScreen() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val rutaActual = navBackStackEntry?.destination?.route
 
-    // BottomSheet del menú "Más"
     if (mostrarMenuMas) {
         ModalBottomSheet(
             onDismissRequest = { mostrarMenuMas = false }
@@ -88,7 +86,6 @@ fun MainScreen() {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Ícono con fondo redondeado
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.primaryContainer,
@@ -138,6 +135,10 @@ fun MainScreen() {
     }
 
     Scaffold(
+        // contentWindowInsets en cero — le decimos al Scaffold que no maneje insets
+        // nosotros los manejamos manualmente en cada pantalla
+        contentWindowInsets = WindowInsets(0),
+        modifier = Modifier.statusBarsPadding(),
         bottomBar = {
             NavigationBar {
                 items.forEach { item ->
@@ -152,7 +153,6 @@ fun MainScreen() {
                         label = { Text(item.etiqueta) }
                     )
                 }
-                // Botón "Más"
                 NavigationBarItem(
                     selected = rutaActual in listOf(
                         Rutas.PRESUPUESTO, Rutas.HISTORIAL, Rutas.INFO
@@ -167,7 +167,10 @@ fun MainScreen() {
         NavHost(
             navController = navController,
             startDestination = Rutas.HOME,
-            modifier = Modifier.padding(innerPadding)
+            // padding del nav bar + consumimos los insets para que no se dupliquen
+            modifier = Modifier
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
         ) {
             composable(Rutas.HOME) {
                 HomeScreen(navController = navController)

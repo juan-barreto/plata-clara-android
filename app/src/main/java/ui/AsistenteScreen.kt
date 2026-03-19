@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -39,12 +42,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun AsistenteScreen() {
@@ -65,7 +68,14 @@ fun AsistenteScreen() {
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    // windowInsetsPadding(WindowInsets.ime) le dice al Column que ceda el espacio
+    // que ocupa el teclado — el LazyColumn con weight(1f) se comprime automáticamente
+    // y el input sube justo arriba del teclado
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.ime)
+    ) {
 
         // — HEADER —
         Row(
@@ -118,6 +128,8 @@ fun AsistenteScreen() {
         }
 
         // — LISTA DE MENSAJES —
+        // weight(1f) hace que el LazyColumn ocupe todo el espacio disponible
+        // y ceda espacio cuando el teclado aparece
         LazyColumn(
             state = listState,
             modifier = Modifier
