@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Le dice al FileProvider en qué carpetas tiene permiso para generar URIs seguras.
+    cache-path = context.cacheDir = /data/data/com.candlelabs.gestionpersonal/cache/
+    Usamos caché porque el archivo es temporal — solo existe para compartirlo.
+    name="cache" es el alias interno que FileProvider usa en la URI generada.
+-->
+<paths>
+    <cache-path
+        name="cache"
+        path="." />
+</paths>

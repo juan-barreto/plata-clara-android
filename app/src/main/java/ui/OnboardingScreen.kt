@@ -47,7 +47,7 @@ fun OnboardingScreen(onNombreGuardado: () -> Unit) {
     fun guardarYContinuar() {
         if (nombre.isNotBlank()) {
             val prefs = context.getSharedPreferences("gestion_prefs", Context.MODE_PRIVATE)
-            prefs.edit().putString("nombre_usuario", nombre.trim()).apply()
+            prefs.edit().putString("nombre_usuario", nombre.trim().replaceFirstChar { it.uppercase() }).apply()
             focusManager.clearFocus()
             onNombreGuardado()
         }

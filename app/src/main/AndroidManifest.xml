@@ -3,6 +3,12 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!--
+        WRITE_EXTERNAL_STORAGE solo hace falta hasta Android 9 (API 28).
+        Desde Android 10 en adelante el sistema maneja permisos de almacenamiento
+        de forma diferente — por eso el maxSdkVersion="28".
+        Como tu minSdk es 26, lo dejamos para cubrir Android 8 y 9.
+    -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
 
@@ -26,6 +32,25 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            FileProvider — componente del sistema que convierte rutas de archivo en URIs seguras.
+            Sin esto, si intentás compartir un archivo con otra app usando su ruta directa,
+            Android lanza FileUriExposedException en runtime (desde API 24).
+
+            authorities: tiene que ser único en el dispositivo → usamos packageName + ".provider"
+            exported="false": solo nuestra app puede pedirle URIs al FileProvider
+            grantUriPermissions="true": le da permiso TEMPORAL de lectura a la app que recibe el Intent
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.candlelabs.gestionpersonal.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 
