@@ -13,6 +13,7 @@ import com.candlelabs.gestionpersonal.model.MovimientoItem
 import com.candlelabs.gestionpersonal.model.MovimientoRequest
 import com.candlelabs.gestionpersonal.model.MovimientoEditRequest
 import com.candlelabs.gestionpersonal.model.MensajeResponse
+import retrofit2.http.Streaming
 import retrofit2.http.PUT
 import retrofit2.http.Query
 import retrofit2.http.Body
@@ -72,6 +73,12 @@ interface ApiService {
     // Borra un movimiento
     @DELETE("presupuesto/{id}")
     suspend fun borrarMovimiento(@Path("id") id: Int): MensajeResponse
+
+    // @Streaming le dice a Retrofit que no cargue todo en memoria
+// ResponseBody es la respuesta cruda — bytes del archivo
+    @Streaming
+    @GET("presupuesto/exportar/excel")
+    suspend fun exportarExcel(@Query("filtro") filtro: String): retrofit2.Response<okhttp3.ResponseBody>
 }
 
 

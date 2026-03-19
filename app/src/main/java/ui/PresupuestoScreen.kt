@@ -19,6 +19,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.candlelabs.gestionpersonal.model.MovimientoItem
 
@@ -82,6 +86,10 @@ fun PresupuestoScreen() {
     val viewModel: PresupuestoViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
     val filtroActual by viewModel.filtro.collectAsState()
+    val context = LocalContext.current
+    val exportando by viewModel.exportando.collectAsState()
+    val mensajeExport by viewModel.mensajeExport.collectAsState()
+    var mostrarMenuExport by remember { mutableStateOf(false) }
 
     // Controla si el BottomSheet está abierto
     var mostrarBottomSheet by remember { mutableStateOf(false) }
@@ -122,7 +130,41 @@ fun PresupuestoScreen() {
             }
         )
     }
-
+    if (mostrarMenuExport) {
+        AlertDialog(
+            onDismissRequest = { mostrarMenuExport = false },
+            title = { Text("Exportar presupuesto") },
+            text = { Text("¿En qué formato querés exportar el período ${filtroActual}?") },
+            confirmButton = {
+                // Excel
+                Button(
+                    onClick = {
+                        viewModel.exportarExcel(context, filtroActual)
+                        mostrarMenuExport = false
+                    },
+                    enabled = !exportando
+                ) {
+                    if (exportando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White
+                        )
+                    } else {
+                        Icon(Icons.Filled.TableChart, contentDescription = null,
+                            modifier = Modifier.size(16.dp))
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Excel")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { mostrarMenuExport = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
     // BottomSheet para agregar/editar
     if (mostrarBottomSheet) {
         ModalBottomSheet(
@@ -152,6 +194,12 @@ fun PresupuestoScreen() {
             )
         }
     }
+    mensajeExport?.let { mensaje ->
+        LaunchedEffect(mensaje) {
+            kotlinx.coroutines.delay(3000)
+            viewModel.limpiarMensajeExport()
+        }
+    }
 
     // Contenido principal
     LazyColumn(
@@ -161,7 +209,26 @@ fun PresupuestoScreen() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
 
-        // — HEADER —
+        // Snackbar de exportación
+        mensajeExport?.let { mensaje ->
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (mensaje.startsWith("✅"))
+                            MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        text = mensaje,
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+// — HEADER —
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -173,16 +240,26 @@ fun PresupuestoScreen() {
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
-                IconButton(onClick = { mostrarBottomSheet = true }) {
-                    Icon(
-                        Icons.Filled.Add,
-                        contentDescription = "Agregar movimiento",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                Row {
+                    // Botón exportar
+                    IconButton(onClick = { mostrarMenuExport = true }) {
+                        Icon(
+                            Icons.Filled.FileDownload,
+                            contentDescription = "Exportar",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    // Botón agregar
+                    IconButton(onClick = { mostrarBottomSheet = true }) {
+                        Icon(
+                            Icons.Filled.Add,
+                            contentDescription = "Agregar movimiento",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
-
         // — FILTROS —
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -9,6 +9,14 @@ import com.candlelabs.gestionpersonal.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import android.content.ContentValues
+import android.content.Context
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import androidx.lifecycle.ViewModelProvider
+import java.io.File
+import java.io.FileOutputStream
 
 // Los estados posibles de la pantalla
 sealed class PresupuestoUiState {
@@ -117,5 +125,65 @@ class PresupuestoViewModel : ViewModel() {
             .filter { it.tipo == "gasto" }
             .groupBy { it.categoria }
             .mapValues { (_, items) -> items.sumOf { it.monto } }
+    }
+    private val _exportando = MutableStateFlow(false)
+    val exportando: StateFlow<Boolean> = _exportando
+
+    private val _mensajeExport = MutableStateFlow<String?>(null)
+    val mensajeExport: StateFlow<String?> = _mensajeExport
+
+    fun exportarExcel(context: Context, filtro: String) {
+        viewModelScope.launch {
+            _exportando.value = true
+            try {
+                val response = RetrofitClient.instance.exportarExcel(filtro)
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null) {
+                        // Guardamos en la carpeta Descargas del dispositivo
+                        // Equivalente en Python: open("Descargas/archivo.xlsx", "wb").write(bytes)
+                        val nombreArchivo = "PlataClara_${filtro}_${System.currentTimeMillis()}.xlsx"
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            // Android 10+ — usamos MediaStore (la forma moderna)
+                            val contentValues = ContentValues().apply {
+                                put(MediaStore.Downloads.DISPLAY_NAME, nombreArchivo)
+                                put(MediaStore.Downloads.MIME_TYPE,
+                                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                            }
+                            val uri = context.contentResolver.insert(
+                                MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues
+                            )
+                            uri?.let {
+                                context.contentResolver.openOutputStream(it)?.use { stream ->
+                                    stream.write(body.bytes())
+                                }
+                            }
+                        } else {
+                            // Android 9 y anterior — escribimos directo al filesystem
+                            val archivo = File(
+                                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                                nombreArchivo
+                            )
+                            FileOutputStream(archivo).use { it.write(body.bytes()) }
+                        }
+
+                        _mensajeExport.value = "✅ Guardado en Descargas"
+                    }
+                } else {
+                    _mensajeExport.value = "❌ Error al exportar"
+                }
+            } catch (e: Exception) {
+                _mensajeExport.value = "❌ ${e.message}"
+            } finally {
+                _exportando.value = false
+            }
+        }
+    }
+
+    fun limpiarMensajeExport() {
+        _mensajeExport.value = null
     }
 }
