@@ -12,7 +12,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge() // ← sacamos la barra de título
         setContent {
             GestionPersonalARGTheme {
                 // Solo crea el navController y llama al mapa

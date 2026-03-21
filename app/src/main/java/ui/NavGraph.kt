@@ -8,7 +8,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 
 object Rutas {
-    const val SPLASH     = "splash"
     const val ONBOARDING = "onboarding"
     const val MAIN       = "main"
     const val DOLAR      = "dolar"
@@ -16,41 +15,29 @@ object Rutas {
     const val HISTORIAL  = "historial"
     const val INFO       = "info"
     const val HOME       = "home"
-    const val ASISTENTE = "asistente"
-
+    const val ASISTENTE  = "asistente"
     const val PRESUPUESTO = "presupuesto"
     const val DOLAR_DETALLE = "dolar_detalle/{casa}/{nombre}"
+
     fun dolarDetalleRuta(casa: String, nombre: String) = "dolar_detalle/$casa/$nombre"
 }
 
 @Composable
 fun NavGraph(navController: NavHostController) {
 
-    // Leemos SharedPreferences acá para decidir el destino después del splash
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("gestion_prefs", Context.MODE_PRIVATE)
     val nombre = prefs.getString("nombre_usuario", null)
 
-    // Si tiene nombre guardado va a MAIN, sino a ONBOARDING
+    // Si tiene nombre va directo al home, sino al onboarding
+    // El splash del sistema ya se encarga de la pantalla de carga
     // Equivalente en Python: destino = "main" if nombre else "onboarding"
-    val destinoPosSplash = if (nombre != null) Rutas.MAIN else Rutas.ONBOARDING
+    val destinoInicial = if (nombre != null) Rutas.MAIN else Rutas.ONBOARDING
 
     NavHost(
         navController = navController,
-        startDestination = Rutas.SPLASH
+        startDestination = destinoInicial
     ) {
-
-        composable(Rutas.SPLASH) {
-            SplashScreen(
-                onSplashTerminado = {
-                    // Ahora usa el destino correcto según si tiene nombre o no
-                    navController.navigate(destinoPosSplash) {
-                        popUpTo(Rutas.SPLASH) { inclusive = true }
-                    }
-                }
-            )
-        }
-
         composable(Rutas.ONBOARDING) {
             OnboardingScreen(
                 onNombreGuardado = {

@@ -1,6 +1,7 @@
 package com.candlelabs.gestionpersonal.ui
 
 import android.content.Context
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,16 +9,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -29,14 +27,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.imePadding
+import com.candlelabs.gestionpersonal.R
 
 @Composable
 fun OnboardingScreen(onNombreGuardado: () -> Unit) {
@@ -57,45 +57,24 @@ fun OnboardingScreen(onNombreGuardado: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF16A34A))
+            // Fondo gris oscuro — mismo que el splash, consistente con el logo
+            .background(Color(0xFF1E1E1E))
             .padding(32.dp)
             .imePadding(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        // Ícono moneda dorada
-        Icon(
-            imageVector = Icons.Filled.MonetizationOn,
-            contentDescription = "Logo",
-            tint = Color(0xFFFFD700),
-            modifier = Modifier.size(80.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Nombre de la app
-        Text(
-            text = "Plata Clara",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Subtítulo
-        Text(
-            text = "Tu asistente financiero argentino",
-            fontSize = 14.sp,
-            color = Color.White.copy(alpha = 0.8f),
-            textAlign = TextAlign.Center
+        // Logo completo centrado
+        Image(
+            painter = painterResource(id = R.drawable.logo_plata_clara),
+            contentDescription = "Plata Clara",
+            modifier = Modifier.fillMaxWidth(0.8f),
+            contentScale = ContentScale.Fit
         )
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Pregunta — blanco para contraste
+        // Pregunta
         Text(
             text = "¿Cómo te llamás?",
             fontSize = 18.sp,
@@ -106,18 +85,18 @@ fun OnboardingScreen(onNombreGuardado: () -> Unit) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Input con colores blancos para contraste sobre verde
+        // Input con colores para contraste sobre gris oscuro
         OutlinedTextField(
             value = nombre,
             onValueChange = { nombre = it },
             label = { Text("Tu nombre", color = Color.White.copy(alpha = 0.8f)) },
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                focusedBorderColor = Color(0xFF16A34A),
+                unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
                 focusedTextColor = Color.White,
                 unfocusedTextColor = Color.White,
-                cursorColor = Color.White
+                cursorColor = Color(0xFF16A34A)
             ),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { guardarYContinuar() }),
@@ -126,16 +105,16 @@ fun OnboardingScreen(onNombreGuardado: () -> Unit) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botón dorado para que resalte sobre el verde
+        // Botón verde — acento de la app
         Button(
             onClick = { guardarYContinuar() },
             enabled = nombre.isNotBlank(),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFFD700),      // dorado
-                contentColor = Color(0xFF14532D),        // verde oscuro
-                disabledContainerColor = Color.White.copy(alpha = 0.3f),
-                disabledContentColor = Color.White.copy(alpha = 0.5f)
+                containerColor = Color(0xFF16A34A),
+                contentColor = Color.White,
+                disabledContainerColor = Color.White.copy(alpha = 0.1f),
+                disabledContentColor = Color.White.copy(alpha = 0.3f)
             ),
             modifier = Modifier
                 .fillMaxWidth()
