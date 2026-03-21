@@ -84,12 +84,14 @@ fun HomeScreen(navController: NavController) {
                         Column {
                             Text(
                                 text = "Hola, ${datos.nombre}",
+                                modifier = Modifier.padding(horizontal = 15.dp),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White
                             )
                             Text(
                                 text = "Tu panorama financiero hoy",
+                                modifier = Modifier.padding(horizontal = 15.dp),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color(0xFF888888)
                             )
@@ -202,6 +204,7 @@ fun HomeScreen(navController: NavController) {
                                     Text(
                                         text = "RIPTE",
                                         style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 1.dp),
                                         color = Color(0xFF888888)
                                     )
                                     Text(
