@@ -1,5 +1,6 @@
 package com.candlelabs.gestionpersonal.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,7 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
@@ -17,17 +19,19 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.draw.shadow
+import com.candlelabs.gestionpersonal.R
 
 data class ItemNavegacion(
     val ruta: String,
-    val icono: ImageVector,
+    val iconoRes: Int,       // ← ahora usamos recursos PNG en vez de ImageVector
     val etiqueta: String
 )
 
 // Ítems del menú "Más" — van en el BottomSheet
 data class ItemMas(
     val ruta: String,
-    val icono: ImageVector,
+    val icono: androidx.compose.ui.graphics.vector.ImageVector,
     val titulo: String,
     val subtitulo: String
 )
@@ -39,11 +43,12 @@ fun MainScreen() {
     val navController = rememberNavController()
     var mostrarMenuMas by remember { mutableStateOf(false) }
 
+    // — ÍTEMS DEL NAVBAR — ahora con PNGs propios
     val items = listOf(
-        ItemNavegacion(Rutas.HOME, Icons.Filled.Home, "Inicio"),
-        ItemNavegacion(Rutas.DOLAR, Icons.Filled.AttachMoney, "Dólar"),
-        ItemNavegacion(Rutas.ALQUILER, Icons.Filled.HomeWork, "Alquiler"),
-        ItemNavegacion(Rutas.ASISTENTE, Icons.Filled.SmartToy, "Clara"),
+        ItemNavegacion(Rutas.HOME, R.drawable.icon_home, "Inicio"),
+        ItemNavegacion(Rutas.DOLAR, R.drawable.icon_dolar, "Dólar"),
+        ItemNavegacion(Rutas.ALQUILER, R.drawable.icon_alquiler, "Alquiler"),
+        ItemNavegacion(Rutas.ASISTENTE, R.drawable.icon_clarai, "ClarAI"),
     )
 
     val itemsMas = listOf(
@@ -57,7 +62,8 @@ fun MainScreen() {
 
     if (mostrarMenuMas) {
         ModalBottomSheet(
-            onDismissRequest = { mostrarMenuMas = false }
+            onDismissRequest = { mostrarMenuMas = false },
+            containerColor = Color(0xFF111111) // ← fondo oscuro del bottom sheet
         ) {
             Column(
                 modifier = Modifier
@@ -69,6 +75,7 @@ fun MainScreen() {
                     text = "Más opciones",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
+                    color = Color.White,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
@@ -86,16 +93,17 @@ fun MainScreen() {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        // Ícono con fondo verde oscuro
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
+                            color = Color(0xFF003D26), // verde oscuro
                             modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = item.icono,
                                     contentDescription = item.titulo,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    tint = Color(0xFF00B872), // verde acento
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -105,12 +113,13 @@ fun MainScreen() {
                             Text(
                                 text = item.titulo,
                                 style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
+                                color = Color.White
                             )
                             Text(
                                 text = item.subtitulo,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color(0xFF888888)
                             )
                         }
 
@@ -119,13 +128,16 @@ fun MainScreen() {
                         Icon(
                             Icons.Filled.ChevronRight,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = Color(0xFF888888),
                             modifier = Modifier.size(20.dp)
                         )
                     }
 
                     if (item != itemsMas.last()) {
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp))
+                        HorizontalDivider(
+                            color = Color(0xFF222222),
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
                     }
                 }
 
@@ -135,39 +147,74 @@ fun MainScreen() {
     }
 
     Scaffold(
-        // contentWindowInsets en cero — le decimos al Scaffold que no maneje insets
-        // nosotros los manejamos manualmente en cada pantalla
         contentWindowInsets = WindowInsets(0),
         modifier = Modifier.statusBarsPadding(),
         bottomBar = {
-            NavigationBar {
+            // — NAVBAR CUSTOM — altura y tamaño de íconos independientes
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(75.dp) // ← alto fijo que querés
+                    .shadow(elevation = 16.dp)
+                    .background(Color(0xFFF8F2F2))
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // ítems normales
                 items.forEach { item ->
-                    NavigationBarItem(
-                        selected = rutaActual == item.ruta,
-                        onClick = {
-                            navController.navigate(item.ruta) {
-                                launchSingleTop = true
-                            }
-                        },
-                        icon = { Icon(item.icono, contentDescription = item.etiqueta) },
-                        label = { Text(item.etiqueta) }
+                    val seleccionado = rutaActual == item.ruta
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                navController.navigate(item.ruta) {
+                                    launchSingleTop = true
+                                }
+                            },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = item.iconoRes),
+                            contentDescription = item.etiqueta,
+                            modifier = Modifier.size(55.dp),// ← tamaño exacto
+                            tint = if (seleccionado) Color(0xFF00B872) else Color(0xFF000000)
+                        )
+                        Text(
+                            text = item.etiqueta,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (seleccionado) Color(0xFF00B872) else Color(0xFF000000)
+                        )
+                    }
+                }
+                // botón Más
+                val masSeleccionado = rutaActual in listOf(Rutas.PRESUPUESTO, Rutas.HISTORIAL, Rutas.INFO)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { mostrarMenuMas = true },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.icon_mas),
+                        contentDescription = "Más",
+                        modifier = Modifier.size(55.dp), // ← tamaño exacto
+                        tint = if (masSeleccionado) Color(0xFF00B872) else Color(0xFF000000)
+                    )
+                    Text(
+                        text = "Más",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (masSeleccionado) Color(0xFF00B872) else Color(0xFF000000)
                     )
                 }
-                NavigationBarItem(
-                    selected = rutaActual in listOf(
-                        Rutas.PRESUPUESTO, Rutas.HISTORIAL, Rutas.INFO
-                    ),
-                    onClick = { mostrarMenuMas = true },
-                    icon = { Icon(Icons.Filled.MoreHoriz, contentDescription = "Más") },
-                    label = { Text("Más") }
-                )
             }
         }
     ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = Rutas.HOME,
-            // padding del nav bar + consumimos los insets para que no se dupliquen
             modifier = Modifier
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)

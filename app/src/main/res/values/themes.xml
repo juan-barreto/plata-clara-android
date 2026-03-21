@@ -3,8 +3,8 @@
     <style name="Theme.GestionPersonalARG" parent="android:Theme.Material.Light.NoActionBar" />
 
     <style name="Theme.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">#1E1E1E</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_flecha</item>
+        <item name="windowSplashScreenBackground">#FFFFFF</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/logo_plata_clara</item>
         <item name="windowSplashScreenIconBackgroundColor">#1E1E1E</item>
         <item name="postSplashScreenTheme">@style/Theme.GestionPersonalARG</item>
     </style>

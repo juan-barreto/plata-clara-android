@@ -2,26 +2,12 @@ package com.candlelabs.gestionpersonal.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -32,7 +18,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.candlelabs.gestionpersonal.R
@@ -50,66 +35,123 @@ fun HomeScreen(navController: NavController) {
     when (uiState) {
 
         is HomeUiState.Cargando -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF000000)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color(0xFF00B872))
             }
         }
 
         is HomeUiState.Error -> {
             val mensaje = (uiState as HomeUiState.Error).mensaje
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "Error: $mensaje", color = MaterialTheme.colorScheme.error)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF000000)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "Error: $mensaje", color = Color(0xFFFF4444))
             }
         }
 
         is HomeUiState.Exito -> {
             val datos = uiState as HomeUiState.Exito
 
-            // Box raíz — fondo claro en toda la pantalla
-            // El header oscuro con esquinas redondeadas abajo "flota" arriba
-            Box(
+            // Column raíz — fondo negro, scroll vertical
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFFF9FAFB)) // fondo gris clarísimo para todo
+                    .background(Color(0xFF000000))
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
 
-                // — CONTENIDO — va primero en el Box para quedar DETRÁS del header
-                Column(
+                // — HEADER — negro, ocupa todo el ancho
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 100.dp) // deja espacio para que el header lo tape arriba
-                        .verticalScroll(rememberScrollState())
-                        .padding(top = 25.dp)
-                        .padding(horizontal = 16.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .fillMaxWidth()
+                        .background(Color(0xFF000000))
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
-
-                    // Saludo
-                    Text(
-                        text = "Hola, ${datos.nombre} 👋",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    // — INDICADORES —
-                    Text(
-                        text = "Indicadores del día",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    // Card Dólar Blue
-                    datos.dolarBlue?.let { blue ->
-                        IndicadorCard(
-                            titulo = "Dólar Blue",
-                            compra = blue.compra,
-                            venta = blue.venta,
-                            variacion = datos.variacionBlue
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Hola, ${datos.nombre}",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Tu panorama financiero hoy",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFF888888)
+                            )
+                        }
+                        Image(
+                            painter = painterResource(id = R.drawable.logo_plata_clara),
+                            contentDescription = "Plata Clara",
+                            modifier = Modifier.height(140.dp),
+                            contentScale = ContentScale.Fit
                         )
                     }
+                }
 
-                    // Card Dólar Oficial
+                // — BLOQUE CREMA — más angosto que el header, negro visible a los costados
+                // Las esquinas redondeadas arriba dan el efecto de "superficie" sobre el negro
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 800.dp) // ← llega hasta el navbar
+                        .padding(horizontal = 16.dp)        // ← negro visible a los costados
+                        .background(
+                            color = Color(0xFFF8F2F2),
+                            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                        )
+                        .padding(horizontal = 12.dp)        // ← padding interno de las cards
+                        .padding(top = 15.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+
+                    // — HERO CARD — Superávit con borde verde
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .offset(y = (-40).dp),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F2F2)),
+                        border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF00B872))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Superávit",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF000000)
+                            )
+                            Text(
+                                text = "$500.000", // ← dato falso, después conectamos
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF00B872)
+                            )
+                        }
+                    }
+
+                    // — DÓLAR OFICIAL —
                     datos.dolarOficial?.let { oficial ->
                         IndicadorCard(
                             titulo = "Dólar Oficial",
@@ -119,149 +161,56 @@ fun HomeScreen(navController: NavController) {
                         )
                     }
 
-                    // Card IPC
+                    // — DÓLAR BLUE —
+                    datos.dolarBlue?.let { blue ->
+                        IndicadorCard(
+                            titulo = "Dólar Blue",
+                            compra = blue.compra,
+                            venta = blue.venta,
+                            variacion = datos.variacionBlue
+                        )
+                    }
+
+                    // — INFLACIÓN + RIPTE —
                     datos.ipcUltimo?.let { ipc ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
-                            )
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = "Inflación",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                                Text(
-                                    text = ipc,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            }
-                        }
-                    }
-
-                    // — ÚLTIMO CÁLCULO DE ALQUILER —
-                    datos.ultimoAlquiler?.let { alquiler ->
-
-                        Text(
-                            text = "Último cálculo de alquiler",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                            )
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-
-                                Text(
-                                    text = alquiler.tipo_indice.uppercase(),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(
-                                            text = "Inicial",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                                        )
-                                        Text(
-                                            text = "$${String.format("%.0f", alquiler.alquiler_inicial)}",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                                        )
-                                    }
-
-                                    Text(
-                                        text = "→",
-                                        fontSize = 20.sp,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                                    )
-
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text(
-                                            text = "Ajustado",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                                        )
-                                        Text(
-                                            text = "$${String.format("%.0f", alquiler.alquiler_final)}",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Text(
-                                    text = "Calculado: ${alquiler.fecha_calculo.substring(0, 10)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                            }
-                        }
-                    }
-
-                    // — PRÓXIMO AJUSTE —
-                    datos.diasParaAjuste?.let { dias ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = when {
-                                    dias < 0 -> MaterialTheme.colorScheme.errorContainer
-                                    dias <= 15 -> MaterialTheme.colorScheme.tertiaryContainer
-                                    else -> MaterialTheme.colorScheme.surfaceVariant
-                                }
-                            )
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column {
                                     Text(
-                                        text = "Próximo ajuste",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = "Inflación",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF888888)
                                     )
                                     Text(
-                                        text = when {
-                                            dias < 0 -> "Vencido hace ${-dias} días"
-                                            dias == 0L -> "¡Hoy!"
-                                            else -> "En $dias días"
-                                        },
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
+                                        text = ipc,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF00B872)
                                     )
                                 }
-                                Text(
-                                    text = when {
-                                        dias < 0 -> "⚠️"
-                                        dias <= 15 -> "🔔"
-                                        else -> "📅"
-                                    },
-                                    fontSize = 28.sp
-                                )
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = "RIPTE",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF888888)
+                                    )
+                                    Text(
+                                        text = "Feb 2026: 2.9%",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF00B872)
+                                    )
+                                }
                             }
                         }
                     }
@@ -269,78 +218,54 @@ fun HomeScreen(navController: NavController) {
                     // — CONSEJO DEL DÍA —
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
                                 text = "Consejo del día",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF888888)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = datos.consejo,
+                                text = "💡 ${datos.consejo}",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color(0xFF000000)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                } // cierra Column contenido
-
-                // — HEADER — va DESPUÉS en el Box para quedar ENCIMA del contenido
-                // Esquinas redondeadas solo abajo, bien pronunciadas (36dp)
-                // — HEADER — esquinas redondeadas abajo bien pronunciadas
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(110.dp)                    // ← más alto para que la curva tenga espacio
-                        .background(
-                            color = Color(0xFF1E1E1E),
-                            shape = RoundedCornerShape(bottomStart = 92.dp, bottomEnd = 92.dp)
-                        )
-                    .padding(start = 32.dp),
-                    contentAlignment = Alignment.CenterStart   // ← logo centrado horizontal y vertical
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.logo_plata_clara),
-                        contentDescription = "Plata Clara",
-                        modifier = Modifier.height(60.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                }
-
-            } // cierra Box raíz
+                } // cierra Column crema
+            } // cierra Column raíz
         } // cierra rama Exito
-    }
-}
+    } // cierra when
+} // cierra HomeScreen
+
 
 // Componente reutilizable para cards de dólar
 // Lo separamos porque se repite — DRY (Don't Repeat Yourself)
 @Composable
 fun IndicadorCard(
+    modifier: Modifier = Modifier,
     titulo: String,
     compra: Double,
     venta: Double,
     variacion: VariacionDolarResponse? = null
 ) {
-    // Determinamos color y flecha según la variación
     val (colorVariacion, flecha) = when {
-        variacion == null -> Pair(MaterialTheme.colorScheme.onPrimaryContainer, "")
-        variacion.variacion_porcentual > 0 -> Pair(Color(0xFF16A34A), "↑")
-        variacion.variacion_porcentual < 0 -> Pair(Color(0xFFDC2626), "↓")
-        else -> Pair(MaterialTheme.colorScheme.onPrimaryContainer, "→")
+        variacion == null -> Pair(Color(0xFF888888), "")
+        variacion.variacion_porcentual > 0 -> Pair(Color(0xFF00B872), "▲")
+        variacion.variacion_porcentual < 0 -> Pair(Color(0xFFFF4444), "▼")
+        else -> Pair(Color(0xFF888888), "→")
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
+        modifier = modifier.fillMaxWidth(), // ← usa el modifier externo
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
@@ -353,11 +278,11 @@ fun IndicadorCard(
                     text = titulo,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = Color(0xFF000000)
                 )
                 if (variacion != null) {
                     Text(
-                        text = "$flecha ${String.format("%.2f", variacion.variacion_porcentual)}%",
+                        text = "$flecha ${String.format("%.1f", variacion.variacion_porcentual)}%",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = colorVariacion
@@ -365,23 +290,24 @@ fun IndicadorCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
+                // Compra
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Compra",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = Color(0xFF888888)
                     )
                     Text(
                         text = "$${String.format("%.0f", compra)}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = Color(0xFF000000)
                     )
                     if (variacion != null) {
                         Text(
@@ -392,17 +318,26 @@ fun IndicadorCard(
                     }
                 }
 
+                // Divisor vertical
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(48.dp)
+                        .background(Color(0xFFEEEEEE))
+                )
+
+                // Venta
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Venta",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = Color(0xFF888888)
                     )
                     Text(
                         text = "$${String.format("%.0f", venta)}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = Color(0xFF000000)
                     )
                     if (variacion != null) {
                         Text(
