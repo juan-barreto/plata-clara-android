@@ -291,9 +291,9 @@ private fun GastoRapidoOverlay(
             Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
             Arrangement.SpaceBetween, Alignment.CenterVertically
         ) {
-            Text("GASTO RÁPIDO", style = MaterialTheme.typography.titleMedium, color = TextoSecundario, letterSpacing = 1.5.sp, fontWeight = FontWeight.Bold)
-            IconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) {
-                Icon(imageVector = Icons.Rounded.Close, contentDescription = null, tint = TextoPrimario, modifier = Modifier.size(28.dp))
+            Text("GASTO RÁPIDO", style = MaterialTheme.typography.titleLarge, color = TextoSecundario, letterSpacing = 1.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
+            IconButton(onClick = onDismiss, modifier = Modifier.size(48.dp).padding(top = 8.dp)) {
+                Icon(imageVector = Icons.Rounded.Close, contentDescription = null, tint = TextoPrimario, modifier = Modifier.size(30.dp))
             }
         }
 

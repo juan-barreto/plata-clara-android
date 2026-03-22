@@ -1,21 +1,22 @@
 package com.candlelabs.gestionpersonal.ui
 
-import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.candlelabs.gestionpersonal.network.SupabaseClient
+import io.github.jan.supabase.auth.auth
 
 object Rutas {
-    const val ONBOARDING = "onboarding"
-    const val MAIN       = "main"
-    const val DOLAR      = "dolar"
-    const val ALQUILER   = "alquiler"
-    const val HISTORIAL  = "historial"
-    const val INFO       = "info"
-    const val HOME       = "home"
-    const val ASISTENTE  = "asistente"
+    const val AUTH        = "auth"
+    const val ONBOARDING  = "onboarding"
+    const val MAIN        = "main"
+    const val DOLAR       = "dolar"
+    const val ALQUILER    = "alquiler"
+    const val HISTORIAL   = "historial"
+    const val INFO        = "info"
+    const val HOME        = "home"
+    const val ASISTENTE   = "asistente"
     const val PRESUPUESTO = "presupuesto"
     const val DOLAR_DETALLE = "dolar_detalle/{casa}/{nombre}"
 
@@ -25,19 +26,33 @@ object Rutas {
 @Composable
 fun NavGraph(navController: NavHostController) {
 
-    val context = LocalContext.current
-    val prefs = context.getSharedPreferences("gestion_prefs", Context.MODE_PRIVATE)
-    val nombre = prefs.getString("nombre_usuario", null)
+    // Verificamos si ya tiene sesión activa en Supabase
+    // Si sí → va directo al main
+    // Si no → va al auth
+    val sesionActiva = try {
+        SupabaseClient.instance.auth.currentSessionOrNull() != null
+    } catch (e: Exception) {
+        false
+    }
 
-    // Si tiene nombre va directo al home, sino al onboarding
-    // El splash del sistema ya se encarga de la pantalla de carga
-    // Equivalente en Python: destino = "main" if nombre else "onboarding"
-    val destinoInicial = if (nombre != null) Rutas.MAIN else Rutas.ONBOARDING
+    val destinoInicial = if (sesionActiva) Rutas.MAIN else Rutas.AUTH
 
     NavHost(
         navController = navController,
         startDestination = destinoInicial
     ) {
+        // Pantalla de login/registro
+        composable(Rutas.AUTH) {
+            AuthScreen(
+                onAuthExitoso = {
+                    navController.navigate(Rutas.MAIN) {
+                        popUpTo(Rutas.AUTH) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // Onboarding (nombre del usuario) — se mantiene por si lo necesitás
         composable(Rutas.ONBOARDING) {
             OnboardingScreen(
                 onNombreGuardado = {
