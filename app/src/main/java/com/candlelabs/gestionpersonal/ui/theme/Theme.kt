@@ -9,23 +9,23 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
-    primary = Verde40,              // #00B872 — verde Plata Clara
-    onPrimary = Negro,              // texto sobre verde → negro
-    primaryContainer = VerdeOscuro, // fondo de íconos activos → verde oscuro
-    onPrimaryContainer = Verde40,   // texto sobre container verde
+    primary = VerdePrimario,
+    onPrimary = FondoNegro,
+    primaryContainer = VerdeOscuro,
+    onPrimaryContainer = VerdePrimario,
 
-    secondary = Gris80,             // gris medio — textos secundarios
-    onSecondary = Negro,
+    secondary = TextoSecundario,
+    onSecondary = FondoNegro,
 
-    background = Gris40,            // #F8F2F2 — fondo crema de toda la app
-    onBackground = Negro,           // texto sobre crema → negro
+    background = FondoPrincipal,
+    onBackground = TextoSobreCreme,
 
-    surface = Gris40,               // mismo que background
-    onSurface = Negro,
-    onSurfaceVariant = Gris80,      // textos secundarios sobre superficie
+    surface = FondoPrincipal,
+    onSurface = TextoSobreCreme,
+    onSurfaceVariant = TextoSecundario,
 
     tertiary = Lima40,
-    error = RojoError               // #FF0034 — rojo YouTube
+    error = RojoGasto
 )
 
 @Composable
@@ -37,7 +37,6 @@ fun GestionPersonalARGTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = android.graphics.Color.TRANSPARENT
-            // íconos de la status bar en claro — para fondo oscuro del header
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
         }
     }

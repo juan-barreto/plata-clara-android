@@ -1,103 +1,90 @@
 package com.candlelabs.gestionpersonal.ui
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.candlelabs.gestionpersonal.R
-import com.candlelabs.gestionpersonal.model.VariacionDolarResponse
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import com.candlelabs.gestionpersonal.ui.theme.*
 
 @Composable
 fun HomeScreen(navController: NavController) {
 
     val context = LocalContext.current
-    val viewModel: HomeViewModel = viewModel(
-        factory = HomeViewModel.factory(context)
-    )
+    val viewModel: HomeViewModel = viewModel(factory = HomeViewModel.factory(context))
     val uiState by viewModel.uiState.collectAsState()
 
     when (uiState) {
-
         is HomeUiState.Cargando -> {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF000000)),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = Color(0xFF00B872))
+            Box(Modifier.fillMaxSize().background(FondoNegro), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = VerdePrimario)
             }
         }
-
         is HomeUiState.Error -> {
-            val mensaje = (uiState as HomeUiState.Error).mensaje
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF000000)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "Error: $mensaje", color = Color(0xFFFF4444))
+            val msg = (uiState as HomeUiState.Error).mensaje
+            Box(Modifier.fillMaxSize().background(FondoNegro), contentAlignment = Alignment.Center) {
+                Text("Error: $msg", color = RojoGasto)
             }
         }
-
         is HomeUiState.Exito -> {
             val datos = uiState as HomeUiState.Exito
-            val balanceVisible by viewModel.balanceVisible.collectAsState()
+            val visible by viewModel.balanceVisible.collectAsState()
 
-            // Column raíz — fondo negro, scroll vertical
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF000000))
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(0.dp)
+                    .background(FondoNegro)
+                    .verticalScroll(rememberScrollState())
             ) {
-
-                // — HEADER — negro, ocupa todo el ancho
+                // ══════════════════════════════════════════════
+                // HEADER — compacto, logo 140dp, centrado
+                // ══════════════════════════════════════════════
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF000000))
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .background(FondoNegro)
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 0.dp, bottom = 40.dp)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.padding(start = 8.dp)) {
                             Text(
-                                text = "Hola, ${datos.nombre}",
-                                modifier = Modifier.padding(horizontal = 15.dp),
+                                "Hola, ${datos.nombre}",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color.White
+                                color = TextoPrimario
                             )
                             Text(
-                                text = "Tu panorama financiero hoy",
-                                modifier = Modifier.padding(horizontal = 15.dp),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF888888)
+                                "Tu panorama financiero hoy",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextoSecundario
                             )
                         }
                         Image(
@@ -109,344 +96,190 @@ fun HomeScreen(navController: NavController) {
                     }
                 }
 
-                // — BLOQUE CREMA — negro visible a los costados
+                // ══════════════════════════════════════════════
+                // BLOQUE CREMA
+                // ══════════════════════════════════════════════
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .defaultMinSize(minHeight = 800.dp)
+                        .defaultMinSize(minHeight = 700.dp)
                         .padding(horizontal = 16.dp)
-                        .background(
-                            color = Color(0xFFF8F2F2),
-                            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-                        )
-                        .padding(horizontal = 12.dp)
-                        .padding(top = 15.dp, bottom = 24.dp),
+                        .background(FondoPrincipal, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                        .padding(horizontal = 14.dp)
+                        .padding(top = 8.dp, bottom = 32.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-
-                    // — HERO CARD — balance real con ojo
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .offset(y = (-40).dp),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F2F2)),
-                        border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF00B872))
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // label Superávit / Déficit / Sin movimientos
-                            Text(
-                                text = when {
-                                    datos.balance > 0 -> "Superávit"
-                                    datos.balance < 0 -> "Déficit"
-                                    else -> "Sin movimientos"
-                                },
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF000000)
-                            )
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                // número o asteriscos
-                                Text(
-                                    text = if (balanceVisible) {
-                                        "$${String.format("%,.0f", datos.balance).replace(",", ".")}"
-                                    } else {
-                                        "$  ••••••"
-                                    },
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = when {
-                                        datos.balance > 0 -> Color(0xFF00B872)
-                                        datos.balance < 0 -> Color(0xFFFF4444)
-                                        else -> Color(0xFF888888)
-                                    }
-                                )
-
-                                // ícono del ojo
-                                IconButton(
-                                    onClick = { viewModel.toggleBalanceVisible() },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = if (balanceVisible) Icons.Filled.Visibility
-                                        else Icons.Filled.VisibilityOff,
-                                        contentDescription = if (balanceVisible) "Ocultar" else "Mostrar",
-                                        tint = Color(0xFF888888),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // — DÓLAR OFICIAL —
-                    datos.dolarOficial?.let { oficial ->
-                        IndicadorCard(
-                            titulo = "Dólar Oficial",
-                            compra = oficial.compra,
-                            venta = oficial.venta,
-                            variacion = datos.variacionOficial
-                        )
-                    }
-
-                    // — DÓLAR BLUE —
-                    datos.dolarBlue?.let { blue ->
-                        IndicadorCard(
-                            titulo = "Dólar Blue",
-                            compra = blue.compra,
-                            venta = blue.venta,
-                            variacion = datos.variacionBlue
-                        )
-                    }
-
-                    // — INFLACIÓN + RIPTE —
-                    datos.ipcUltimo?.let { ipc ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column {
-                                    Text(
-                                        text = "Inflación",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = Color(0xFF888888)
-                                    )
-                                    Text(
-                                        text = ipc,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF00B872)
-                                    )
-                                }
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        text = "RIPTE",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFF888888)
-                                    )
-                                    Text(
-                                        text = "Feb 2026: 2.9%",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF00B872)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // — CONSEJO DEL DÍA —
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "Consejo del día",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF888888)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "💡 ${datos.consejo}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF000000)
-                            )
-                        }
-                    }
-                    // — ÚLTIMO AJUSTE DE ALQUILER —
-                    datos.ultimoAlquiler?.let { alquiler ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-
-                                Text(
-                                    text = "Último ajuste de alquiler",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFF888888)
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                // — montos inicial → ajustado —
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = alquiler.tipo_indice.uppercase(),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF00B872)
-                                    )
-                                    Text(
-                                        text = "$${String.format("%,.0f", alquiler.alquiler_inicial).replace(",", ".")} → $${String.format("%,.0f", alquiler.alquiler_final).replace(",", ".")}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF000000)
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(6.dp))
-
-                                // — próximo ajuste —
-                                datos.diasParaAjuste?.let { dias ->
-                                    Text(
-                                        text = when {
-                                            dias < 0 -> "⚠️ Ajuste vencido hace ${-dias} días"
-                                            dias == 0L -> "⚠️ El ajuste vence hoy"
-                                            dias <= 15 -> "🔔 Próximo ajuste en $dias días"
-                                            else -> "📅 Próximo ajuste en $dias días"
-                                        },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = when {
-                                            dias <= 0 -> Color(0xFFFF0034)
-                                            dias <= 15 -> Color(0xFFFF8800)
-                                            else -> Color(0xFF888888)
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                } // cierra Column crema
-            } // cierra Column raíz
-        } // cierra rama Exito
-    } // cierra when
-} // cierra HomeScreen
-
-
-// Componente reutilizable para cards de dólar
-// Lo separamos porque se repite — DRY (Don't Repeat Yourself)
-@Composable
-fun IndicadorCard(
-    modifier: Modifier = Modifier,
-    titulo: String,
-    compra: Double,
-    venta: Double,
-    variacion: VariacionDolarResponse? = null
-) {
-    val (colorVariacion, flecha) = when {
-        variacion == null -> Pair(Color(0xFF888888), "")
-        variacion.variacion_porcentual > 0 -> Pair(Color(0xFF00B872), "▲")
-        variacion.variacion_porcentual < 0 -> Pair(Color(0xFFFF4444), "▼")
-        else -> Pair(Color(0xFF888888), "→")
-    }
-
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = titulo,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF000000)
-                )
-                if (variacion != null) {
-                    Text(
-                        text = "$flecha ${String.format("%.1f", variacion.variacion_porcentual)}%",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = colorVariacion
+                    // HERO CARD
+                    HeroCard(
+                        balance = datos.balance,
+                        totalIngresos = datos.totalIngresos,
+                        totalGastos = datos.totalGastos,
+                        visible = visible,
+                        onToggle = { viewModel.toggleBalanceVisible() },
+                        ipcUltimo = datos.ipcUltimo,
+                        ipcAnterior = datos.ipcAnterior,
+                        modifier = Modifier.offset(y = (-40).dp)
                     )
+
+                    // CATEGORÍAS
+                    if (datos.categorias.isNotEmpty()) {
+                        Text(
+                            "TU PRESUPUESTO",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextoSobreCreme,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            modifier = Modifier.padding(start = 4.dp).offset(y = (-28).dp)
+                        )
+                        datos.categorias.chunked(2).forEach { fila ->
+                            Row(
+                                Modifier.fillMaxWidth().offset(y = (-28).dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                fila.forEach { cat -> CategoriaCard(cat, visible, Modifier.weight(1f)) }
+                                if (fila.size == 1) Spacer(Modifier.weight(1f))
+                            }
+                        }
+                    }
+
+                    // CONSEJO
+                    ConsejoCard(datos.consejo, Modifier.offset(y = (-28).dp))
                 }
             }
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                // Compra
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "Compra",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF888888)
-                    )
-                    Text(
-                        text = "$${String.format("%.0f", compra)}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF000000)
-                    )
-                    if (variacion != null) {
-                        Text(
-                            text = "ant: $${String.format("%.0f", variacion.compra_anterior)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colorVariacion
-                        )
-                    }
+// ═══════════════════════════════════════════════════════════
+// HERO CARD
+// ═══════════════════════════════════════════════════════════
+@Composable
+private fun HeroCard(
+    balance: Double, totalIngresos: Double, totalGastos: Double,
+    visible: Boolean, onToggle: () -> Unit,
+    ipcUltimo: String?, ipcAnterior: String?,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth()
+            .shadow(8.dp, RoundedCornerShape(20.dp), ambientColor = SombraCard, spotColor = SombraCard),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = FondoCard),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(20.dp)) {
+            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                Text("DISPONIBLE ESTE MES", style = MaterialTheme.typography.labelSmall, color = TextoSecundario, letterSpacing = 1.sp)
+                IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
+                    Icon(if (visible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff, null, tint = TextoSecundario, modifier = Modifier.size(20.dp))
                 }
-
-                // Divisor vertical
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(48.dp)
-                        .background(Color(0xFFEEEEEE))
-                )
-
-                // Venta
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "Venta",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF888888)
-                    )
-                    Text(
-                        text = "$${String.format("%.0f", venta)}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF000000)
-                    )
-                    if (variacion != null) {
-                        Text(
-                            text = "ant: $${String.format("%.0f", variacion.venta_anterior)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colorVariacion
-                        )
+            }
+            Text(
+                if (visible) "$${fmtAR(balance)}" else "$ ••••••",
+                style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold,
+                color = if (visible) VerdePrimario else TextoMuted
+            )
+            if (visible) {
+                Spacer(Modifier.height(4.dp))
+                Row {
+                    Text("Gastaste ", style = MaterialTheme.typography.bodyMedium, color = TextoSecundario)
+                    Text("$${fmtAR(totalGastos)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = RojoGasto)
+                    Text(" de ", style = MaterialTheme.typography.bodyMedium, color = TextoSecundario)
+                    Text("$${fmtAR(totalIngresos)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = VerdePrimario)
+                }
+            }
+            if (ipcUltimo != null) {
+                Spacer(Modifier.height(14.dp))
+                HorizontalDivider(color = Divisor)
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IpcPulseDot()
+                        Text("INFLACIÓN", style = MaterialTheme.typography.labelSmall, color = TextoSecundario, letterSpacing = 0.5.sp)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(ipcUltimo, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = VerdePrimario)
+                        if (ipcAnterior != null) Text(ipcAnterior, style = MaterialTheme.typography.labelSmall, color = TextoMuted)
                     }
                 }
             }
         }
     }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CATEGORÍA CARD
+// ═══════════════════════════════════════════════════════════
+@Composable
+private fun CategoriaCard(cat: CategoriaResumen, visible: Boolean, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = FondoCard),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(14.dp)) {
+            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                Text(nombreDisplay(cat.nombre).uppercase(), style = MaterialTheme.typography.labelSmall, color = TextoPrimario, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp)
+                Icon(iconoPara(cat.nombre), null, tint = TextoSecundario, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.height(8.dp))
+            if (visible) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("$${fmtAR(cat.disponible)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextoPrimario)
+                    Text(if (cat.excedido) "▼" else "▲", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (cat.excedido) TextoMuted.copy(alpha = 0.5f) else VerdePrimario)
+                }
+            } else {
+                Text("$ ••••", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextoMuted)
+            }
+            Spacer(Modifier.height(10.dp))
+            Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Divisor)) {
+                if (visible) {
+                    Box(Modifier.fillMaxWidth(cat.porcentaje.coerceIn(0f, 1f)).fillMaxHeight().clip(RoundedCornerShape(2.dp)).background(VerdePrimario))
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONSEJO
+// ═══════════════════════════════════════════════════════════
+@Composable
+private fun ConsejoCard(consejo: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = FondoCard),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text("CONSEJO DEL DÍA", style = MaterialTheme.typography.labelSmall, color = TextoSecundario, letterSpacing = 0.8.sp)
+            Spacer(Modifier.height(6.dp))
+            Row {
+                Icon(Icons.Rounded.Lightbulb, null, tint = VerdePrimario, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(consejo, style = MaterialTheme.typography.bodyMedium, color = TextoMuted, lineHeight = 20.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun IpcPulseDot() {
+    val t = rememberInfiniteTransition(label = "ipc")
+    val a by t.animateFloat(0.4f, 1f, infiniteRepeatable(tween(1000, easing = EaseInOut), RepeatMode.Reverse), label = "a")
+    Box(Modifier.size(7.dp).clip(CircleShape).background(VerdePrimario.copy(alpha = a)))
+}
+
+private fun fmtAR(v: Double): String = String.format("%,.0f", v).replace(",", ".")
+private fun nombreDisplay(cat: String): String = when (cat.lowercase()) {
+    "supermercado" -> "Comida"; "comida/salidas" -> "Salidas"; "varios" -> "Varios"
+    else -> cat.replaceFirstChar { it.uppercase() }
+}
+private fun iconoPara(cat: String): ImageVector = when (cat.lowercase()) {
+    "supermercado" -> Icons.Rounded.ShoppingCart; "transporte" -> Icons.Rounded.DirectionsBus
+    "comida/salidas" -> Icons.Rounded.Restaurant; "servicios" -> Icons.Rounded.PhoneAndroid
+    "salud" -> Icons.Rounded.LocalPharmacy; "varios" -> Icons.Rounded.FolderOpen
+    else -> Icons.Rounded.MoreHoriz
 }

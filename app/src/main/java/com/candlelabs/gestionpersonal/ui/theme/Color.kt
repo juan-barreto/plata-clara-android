@@ -2,23 +2,47 @@ package com.candlelabs.gestionpersonal.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// — PALETA PLATA CLARA —
+// ═══════════════════════════════════════════════════════════
+// PALETA PLATA CLARA — Fuente única de verdad para colores
+// NUNCA usar Color(0xFF...) suelto en una pantalla.
+// ═══════════════════════════════════════════════════════════
 
-// Verde principal — el acento de toda la app
-val Verde40 = Color(0xFF00B872)      // verde Plata Clara — botones, acentos, primario
-val Verde80 = Color(0xFF86EFAC)      // verde claro — no se usa por ahora
-val VerdeOscuro = Color(0xFF003D26)  // verde muy oscuro — fondos de íconos activos
+// — VERDE PRINCIPAL —
+val VerdePrimario    = Color(0xFF00B872)
+val VerdeSuave       = Color(0xFF86EFAC)
+val VerdeOscuro      = Color(0xFF003D26)
+val VerdeGlow        = Color(0x3300B872)
 
-// Gris crema — fondo del bloque de contenido
-val Gris40 = Color(0xFFF8F2F2)       // crema — fondo surface del Home y otras pantallas
-val Gris80 = Color(0xFF888888)       // gris medio — textos secundarios
+// — FONDOS —
+val FondoPrincipal   = Color(0xFFF8F2F2)   // crema
+val FondoCard        = Color(0xFF000000)   // negro puro — cards
+val FondoNegro       = Color(0xFF000000)   // header, loading
 
-// Negro — fondo del header
-val Negro = Color(0xFF000000)
+// — TEXTOS —
+val TextoPrimario    = Color(0xFFFFFFFF)   // blanco sobre cards negras
+val TextoSecundario  = Color(0xFF888888)   // labels, hints
+val TextoMuted       = Color(0xFFBBBBBB)   // placeholders, textos suaves
+val TextoSobreCreme  = Color(0xFF000000)   // negro sobre fondo crema
 
-// Lima — terciario (sin cambios)
-val Lima80 = Color(0xFFBEF264)
-val Lima40 = Color(0xFF65A30D)
+// — ESTADOS —
+val RojoGasto        = Color(0xFFE23E57)   // solo para monto "Gastaste" en hero card
+val Naranja          = Color(0xFFFF8800)   // warnings — cerca del límite
 
-// Rojo error — YouTube red
-val RojoError = Color(0xFFFF0034)
+// — TERCIARIOS —
+val Lima80           = Color(0xFFBEF264)
+val Lima40           = Color(0xFF65A30D)
+
+// — BORDES Y DIVISORES —
+val Divisor          = Color(0xFF222222)   // sobre cards negras
+val DivisorClaro     = Color(0xFFEEEEEE)   // sobre fondo crema
+val BordeCard        = Color(0x10FFFFFF)   // borde sutil blanco en cards
+val SombraCard       = Color(0x40FFFFFF)   // sombra blanca para cards sobre crema
+
+// — ICONOS DE CATEGORÍA (Material Icons Round) —
+// Referencia para usar en Compose con Icons.Rounded.*
+// Comida      → Icons.Rounded.ShoppingCart
+// Transporte  → Icons.Rounded.DirectionsBus
+// Salidas     → Icons.Rounded.Restaurant
+// Servicios   → Icons.Rounded.PhoneAndroid
+// Salud       → Icons.Rounded.LocalPharmacy
+// Varios      → Icons.Rounded.FolderOpen
