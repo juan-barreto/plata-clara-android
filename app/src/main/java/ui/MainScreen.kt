@@ -2,6 +2,7 @@ package com.candlelabs.gestionpersonal.ui
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -188,7 +189,8 @@ fun MainScreen() {
                     shape = CircleShape,
                     containerColor = VerdePrimario,
                     contentColor = FondoNegro,
-                    elevation = FloatingActionButtonDefaults.elevation(8.dp)
+                    elevation = FloatingActionButtonDefaults.elevation(8.dp),
+                    modifier = Modifier.border(2.dp, FondoNegro, CircleShape)
                 ) {
                     Icon(imageVector = Icons.Rounded.AttachMoney, contentDescription = "Gasto Rápido", modifier = Modifier.size(28.dp))
                 }

@@ -73,6 +73,10 @@ interface ApiService {
     // Borra un movimiento
     @DELETE("presupuesto/{id}")
     suspend fun borrarMovimiento(@Path("id") id: Int): MensajeResponse
+    //Borra todos los movimientos
+
+    @DELETE("presupuesto/reset")
+    suspend fun resetPresupuesto(): MensajeResponse
 
     // @Streaming le dice a Retrofit que no cargue todo en memoria
 // ResponseBody es la respuesta cruda — bytes del archivo

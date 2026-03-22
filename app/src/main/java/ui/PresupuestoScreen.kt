@@ -5,528 +5,415 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.TableChart
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.candlelabs.gestionpersonal.model.MovimientoItem
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.layout.imePadding
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.candlelabs.gestionpersonal.model.MovimientoItem
+import com.candlelabs.gestionpersonal.ui.theme.*
 
-// Categorías disponibles con su emoji
-// Separadas por tipo para mostrar las correctas según lo que el usuario elige
-val CATEGORIAS_INGRESO = listOf(
-    "Sueldo", "Freelance", "Extra",
-    "Inversión", "Otro ingreso"
-)
-
+// ── Categorías ──
+val CATEGORIAS_INGRESO = listOf("Sueldo", "Freelance", "Extra", "Inversión", "Otro ingreso")
 val CATEGORIAS_GASTO = listOf(
-    "Alquiler", "Supermercado", "Transporte",
-    "Servicios", "Comida/Salidas", "Salud",
-    "Tecnología", "Educación", "Entretenimiento",
-    "Deudas/Cuotas", "Otro gasto"
+    "Alquiler", "Supermercado", "Transporte", "Servicios", "Comida/Salidas",
+    "Salud", "Tecnología", "Educación", "Entretenimiento", "Deudas/Cuotas", "Otro gasto"
 )
 
-// Mapa categoria → ícono de Material Icons
+// ── Iconos Material Design por categoría ──
 val ICONOS_CATEGORIA = mapOf(
-    "Sueldo"          to Icons.Filled.Work,
-    "Freelance"       to Icons.Filled.Laptop,
-    "Extra"           to Icons.Filled.AddCircle,
-    "Inversión"       to Icons.Filled.TrendingUp,
-    "Otro ingreso"    to Icons.Filled.AttachMoney,
-    "Alquiler"        to Icons.Filled.Home,
-    "Supermercado"    to Icons.Filled.ShoppingCart,
-    "Transporte"      to Icons.Filled.DirectionsBus,
-    "Servicios"       to Icons.Filled.Bolt,
-    "Comida/Salidas"  to Icons.Filled.Restaurant,
-    "Salud"           to Icons.Filled.LocalHospital,
-    "Tecnología"      to Icons.Filled.PhoneAndroid,
-    "Educación"       to Icons.Filled.School,
-    "Entretenimiento" to Icons.Filled.TheaterComedy,
-    "Deudas/Cuotas"   to Icons.Filled.CreditCard,
-    "Otro gasto"      to Icons.Filled.Category,
+    "Sueldo" to Icons.Rounded.Work,
+    "Freelance" to Icons.Rounded.Laptop,
+    "Extra" to Icons.Rounded.AddCircle,
+    "Inversión" to Icons.Rounded.TrendingUp,
+    "Otro ingreso" to Icons.Rounded.AttachMoney,
+    "Alquiler" to Icons.Rounded.Home,
+    "Supermercado" to Icons.Rounded.ShoppingCart,
+    "Transporte" to Icons.Rounded.DirectionsBus,
+    "Servicios" to Icons.Rounded.PhoneAndroid,
+    "Comida/Salidas" to Icons.Rounded.Restaurant,
+    "Salud" to Icons.Rounded.LocalPharmacy,
+    "Tecnología" to Icons.Rounded.Devices,
+    "Educación" to Icons.Rounded.School,
+    "Entretenimiento" to Icons.Rounded.SportsEsports,
+    "Deudas/Cuotas" to Icons.Rounded.CreditCard,
+    "Otro gasto" to Icons.Rounded.Category,
 )
 
-// Mapa categoria → color del círculo
-val COLORES_CATEGORIA = mapOf(
-    "Sueldo"          to Color(0xFF16A34A),
-    "Freelance"       to Color(0xFF0891B2),
-    "Extra"           to Color(0xFF7C3AED),
-    "Inversión"       to Color(0xFFD97706),
-    "Otro ingreso"    to Color(0xFF16A34A),
-    "Alquiler"        to Color(0xFFDC2626),
-    "Supermercado"    to Color(0xFFEA580C),
-    "Transporte"      to Color(0xFF2563EB),
-    "Servicios"       to Color(0xFFF59E0B),
-    "Comida/Salidas"  to Color(0xFFDB2777),
-    "Salud"           to Color(0xFF16A34A),
-    "Tecnología"      to Color(0xFF6366F1),
-    "Educación"       to Color(0xFF0891B2),
-    "Entretenimiento" to Color(0xFF7C3AED),
-    "Deudas/Cuotas"   to Color(0xFFDC2626),
-    "Otro gasto"      to Color(0xFF6B7280),
-)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PresupuestoScreen() {
-
     val viewModel: PresupuestoViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
     val filtroActual by viewModel.filtro.collectAsState()
     val context = LocalContext.current
     val exportando by viewModel.exportando.collectAsState()
     val mensajeExport by viewModel.mensajeExport.collectAsState()
-    var mostrarMenuExport by remember { mutableStateOf(false) }
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
-    // Controla si el BottomSheet está abierto
     var mostrarBottomSheet by remember { mutableStateOf(false) }
-
-    // Movimiento que se está editando — null si es uno nuevo
-    // Equivalente en Python: movimiento_editando = None
     var movimientoEditando by remember { mutableStateOf<MovimientoItem?>(null) }
-
-    // Estado del BottomSheet de confirmación de borrado
     var mostrarConfirmBorrado by remember { mutableStateOf(false) }
     var idParaBorrar by remember { mutableStateOf<Int?>(null) }
-
-    // Toggle del gráfico — torta o línea
+    var mostrarConfirmReset by remember { mutableStateOf(false) }
+    var mostrarMenuExport by remember { mutableStateOf(false) }
     var graficoDeTorta by remember { mutableStateOf(true) }
 
-    // Filtros disponibles
     val filtros = listOf("semanal", "mensual", "anual")
 
-    // Diálogo de confirmación de borrado
+    // ── Diálogo borrar un movimiento ──
     if (mostrarConfirmBorrado && idParaBorrar != null) {
         AlertDialog(
             onDismissRequest = { mostrarConfirmBorrado = false },
-            title = { Text("Borrar movimiento") },
-            text = { Text("¿Estás seguro? Esta acción no se puede deshacer.") },
+            title = { Text("Borrar movimiento", color = TextoPrimario) },
+            text = { Text("Esta acción no se puede deshacer.", color = TextoSecundario) },
+            containerColor = FondoCard,
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.borrarMovimiento(idParaBorrar!!)
                     mostrarConfirmBorrado = false
                     idParaBorrar = null
-                }) {
-                    Text("Borrar", color = MaterialTheme.colorScheme.error)
-                }
+                }) { Text("Borrar", color = RojoGasto) }
             },
             dismissButton = {
                 TextButton(onClick = { mostrarConfirmBorrado = false }) {
-                    Text("Cancelar")
+                    Text("Cancelar", color = TextoSecundario)
                 }
             }
         )
     }
+
+    // ── Diálogo reset todos ──
+    if (mostrarConfirmReset) {
+        AlertDialog(
+            onDismissRequest = { mostrarConfirmReset = false },
+            title = { Text("Resetear movimientos", color = TextoPrimario) },
+            text = { Text("Se borrarán TODOS los movimientos del presupuesto. Esta acción no se puede deshacer.", color = TextoSecundario) },
+            containerColor = FondoCard,
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.resetMovimientos()
+                    mostrarConfirmReset = false
+                }) { Text("Borrar todo", color = RojoGasto) }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarConfirmReset = false }) {
+                    Text("Cancelar", color = TextoSecundario)
+                }
+            }
+        )
+    }
+
+    // ── Diálogo exportar ──
     if (mostrarMenuExport) {
         AlertDialog(
             onDismissRequest = { mostrarMenuExport = false },
-            title = { Text("Exportar presupuesto") },
-            text = { Text("¿En qué formato querés exportar el período ${filtroActual}?") },
+            title = { Text("Exportar presupuesto", color = TextoPrimario) },
+            text = { Text("Formato para el período $filtroActual:", color = TextoSecundario) },
+            containerColor = FondoCard,
             confirmButton = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Botón Excel
                     Button(
-                        onClick = {
-                            viewModel.exportarExcel(context, filtroActual)
-                            mostrarMenuExport = false
-                        },
-                        enabled = !exportando
+                        onClick = { viewModel.exportarExcel(context, filtroActual); mostrarMenuExport = false },
+                        enabled = !exportando,
+                        colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario, contentColor = FondoNegro)
                     ) {
-                        if (exportando) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = Color.White
-                            )
-                        } else {
-                            Icon(
-                                Icons.Filled.TableChart,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(Icons.Rounded.TableChart, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
                         Text("Excel")
                     }
-
-                    // Botón PDF
                     Button(
-                        onClick = {
-                            viewModel.exportarPdf(context, filtroActual)
-                            mostrarMenuExport = false
-                        },
-                        enabled = !exportando
+                        onClick = { viewModel.exportarPdf(context, filtroActual); mostrarMenuExport = false },
+                        enabled = !exportando,
+                        colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario, contentColor = FondoNegro)
                     ) {
-                        if (exportando) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = Color.White
-                            )
-                        } else {
-                            Icon(
-                                Icons.Filled.PictureAsPdf,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(Icons.Rounded.PictureAsPdf, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
                         Text("PDF")
                     }
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { mostrarMenuExport = false }) {
-                    Text("Cancelar")
+                TextButton(onClick = { mostrarMenuExport = false }) {
+                    Text("Cancelar", color = TextoSecundario)
                 }
             }
         )
     }
 
-    // BottomSheet para agregar/editar
-    // BottomSheet para agregar/editar
+    // ── Dialog agregar/editar ──
     if (mostrarBottomSheet) {
         Dialog(
-            onDismissRequest = {
-                mostrarBottomSheet = false
-                movimientoEditando = null
-            },
+            onDismissRequest = { mostrarBottomSheet = false; movimientoEditando = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
-            // Surface le da fondo blanco y bordes redondeados al Dialog
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = FondoCard
             ) {
                 FormularioMovimiento(
                     movimientoInicial = movimientoEditando,
                     onGuardar = { tipo, categoria, descripcion, monto ->
                         if (movimientoEditando != null) {
-                            viewModel.editarMovimiento(
-                                movimientoEditando!!.id,
-                                tipo, categoria, descripcion, monto
-                            )
+                            viewModel.editarMovimiento(movimientoEditando!!.id, tipo, categoria, descripcion, monto)
                         } else {
                             viewModel.agregarMovimiento(tipo, categoria, descripcion, monto)
                         }
                         mostrarBottomSheet = false
                         movimientoEditando = null
                     },
-                    onCancelar = {
-                        mostrarBottomSheet = false
-                        movimientoEditando = null
-                    }
+                    onCancelar = { mostrarBottomSheet = false; movimientoEditando = null }
                 )
             }
         }
     }
-    mensajeExport?.let { mensaje ->
-        LaunchedEffect(mensaje) {
-            kotlinx.coroutines.delay(3000)
-            viewModel.limpiarMensajeExport()
-        }
-    }
 
-    // Contenido principal
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    // Limpiar mensaje export
+    mensajeExport?.let { LaunchedEffect(it) { kotlinx.coroutines.delay(3000); viewModel.limpiarMensajeExport() } }
+
+    // ── Contenido principal con Pull to Refresh ──
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { viewModel.recargar() },
+        modifier = Modifier.fillMaxSize().background(FondoPrincipal)
     ) {
-
-        // Snackbar de exportación
-        mensajeExport?.let { mensaje ->
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (mensaje.startsWith("✅"))
-                            MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        text = mensaje,
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        }
-// — HEADER —
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "💰 Presupuesto Personal",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Row {
-                    // Botón exportar
-                    IconButton(onClick = { mostrarMenuExport = true }) {
-                        Icon(
-                            Icons.Filled.FileDownload,
-                            contentDescription = "Exportar",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    // Botón agregar
-                    IconButton(onClick = { mostrarBottomSheet = true }) {
-                        Icon(
-                            Icons.Filled.Add,
-                            contentDescription = "Agregar movimiento",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-        }
-        // — FILTROS —
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                filtros.forEach { filtro ->
-                    FilterChip(
-                        selected = filtroActual == filtro,
-                        onClick = { viewModel.cambiarFiltro(filtro) },
-                        label = {
-                            Text(
-                                text = filtro.replaceFirstChar { it.uppercase() }
-                            )
-                        }
-                    )
-                }
-            }
-        }
-
-        // Contenido según el estado
-        when (val estado = uiState) {
-
-            is PresupuestoUiState.Cargando -> {
-                item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-            }
-
-            is PresupuestoUiState.Error -> {
-                item {
-                    Text(
-                        text = "Error: ${estado.mensaje}",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-
-            is PresupuestoUiState.Exito -> {
-                val movimientos = estado.movimientos
-                val ingresos = viewModel.calcularTotalIngresos(movimientos)
-                val gastos = viewModel.calcularTotalGastos(movimientos)
-                val balance = viewModel.calcularBalance(movimientos)
-                val porCategoria = viewModel.calcularPorCategoria(movimientos)
-
-                // — RESUMEN —
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Snackbar export
+            mensajeExport?.let { msg ->
                 item {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
+                        Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = FondoCard)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                // Ingresos
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = "Ingresos",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    Text(
-                                        text = "$${String.format("%,.0f", ingresos)}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = VERDE
-                                    )
-                                }
-                                // Gastos
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = "Gastos",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    Text(
-                                        text = "$${String.format("%,.0f", gastos)}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFDC2626)
-                                    )
-                                }
-                                // Balance
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = "Balance",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    Text(
-                                        text = "${if (balance >= 0) "+" else ""}$${String.format("%,.0f", balance)}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (balance >= 0) VERDE else Color(0xFFDC2626)
-                                    )
-                                }
-                            }
-
-                            // Emoji de estado según el balance
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = when {
-                                    balance > 0 -> "✅ Vas bien — tenés un superávit"
-                                    balance == 0.0 -> "⚠️ Justo — tus gastos igualan tus ingresos"
-                                    else -> "🔴 Cuidado — estás gastando más de lo que ganás"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Rounded.CheckCircle, null, tint = VerdePrimario, modifier = Modifier.size(18.dp))
+                            Text(msg, style = MaterialTheme.typography.bodyMedium, color = TextoPrimario)
                         }
                     }
                 }
+            }
 
-                // — GRÁFICO —
-                if (movimientos.isNotEmpty()) {
+            // ── HEADER ──
+            item {
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Rounded.AccountBalanceWallet, null, tint = VerdePrimario, modifier = Modifier.size(28.dp))
+                        Text("Presupuesto", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextoSobreCreme)
+                    }
+                    Row {
+                        IconButton(onClick = { mostrarConfirmReset = true }) {
+                            Icon(Icons.Rounded.RestartAlt, "Resetear", tint = TextoSecundario, modifier = Modifier.size(28.dp))
+                        }
+                        IconButton(onClick = { mostrarMenuExport = true }) {
+                            Icon(Icons.Rounded.FileDownload, "Exportar", tint = VerdePrimario, modifier = Modifier.size(28.dp))
+                        }
+                        IconButton(onClick = { mostrarBottomSheet = true }) {
+                            Icon(Icons.Rounded.Add, "Agregar", tint = VerdePrimario, modifier = Modifier.size(28.dp))
+                        }
+                    }
+                }
+            }
+
+            // ── FILTROS ──
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    filtros.forEach { filtro ->
+                        FilterChip(
+                            selected = filtroActual == filtro,
+                            onClick = { viewModel.cambiarFiltro(filtro) },
+                            label = { Text(filtro.replaceFirstChar { it.uppercase() }) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = VerdePrimario,
+                                selectedLabelColor = FondoNegro
+                            )
+                        )
+                    }
+                }
+            }
+
+            when (val estado = uiState) {
+                is PresupuestoUiState.Cargando -> {
                     item {
-                        // Botones toggle — reemplaza el Switch con emojis
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            FilterChip(
-                                selected = !graficoDeTorta,
-                                onClick = { graficoDeTorta = false },
-                                label = { Text("📈 Balance") }
-                            )
-                            FilterChip(
-                                selected = graficoDeTorta,
-                                onClick = { graficoDeTorta = true },
-                                label = { Text("📊 Por semana") }
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Box(modifier = Modifier.padding(16.dp)) {
-                                if (graficoDeTorta) {
-                                    GraficoBarrasPorSemana(movimientos = movimientos)
-                                } else {
-                                    GraficoBalanceAcumulado(movimientos = movimientos)
-                                }
-                            }
+                        Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = VerdePrimario)
                         }
                     }
                 }
-                // — LISTA DE MOVIMIENTOS —
-                item {
-                    Text(
-                        text = "Movimientos",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                is PresupuestoUiState.Error -> {
+                    item { Text("Error: ${estado.mensaje}", color = RojoGasto) }
                 }
+                is PresupuestoUiState.Exito -> {
+                    val movimientos = estado.movimientos
+                    val ingresos = viewModel.calcularTotalIngresos(movimientos)
+                    val gastos = viewModel.calcularTotalGastos(movimientos)
+                    val balance = viewModel.calcularBalance(movimientos)
 
-                if (movimientos.isEmpty()) {
+                    // ── RESUMEN ──
                     item {
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
+                            Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = FondoCard),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
                         ) {
-                            Text(
-                                text = "Todavía no hay movimientos en este período.\nTocá el + para agregar uno.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
-                    }
-                } else {
-                    items(movimientos) { movimiento ->
-                        FilaMovimiento(
-                            movimiento = movimiento,
-                            onEditar = {
-                                movimientoEditando = movimiento
-                                mostrarBottomSheet = true
-                            },
-                            onBorrar = {
-                                idParaBorrar = movimiento.id
-                                mostrarConfirmBorrado = true
+                            Column(Modifier.padding(18.dp)) {
+                                Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
+                                    ResumenItem("INGRESOS", ingresos, VerdePrimario)
+                                    ResumenItem("GASTOS", gastos, RojoGasto)
+                                    ResumenItem("BALANCE", balance, if (balance >= 0) VerdePrimario else RojoGasto)
+                                }
+                                Spacer(Modifier.height(10.dp))
+                                HorizontalDivider(color = Divisor)
+                                Spacer(Modifier.height(8.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(
+                                        when {
+                                            balance > 0 -> Icons.Rounded.CheckCircle
+                                            balance == 0.0 -> Icons.Rounded.Warning
+                                            else -> Icons.Rounded.ErrorOutline
+                                        },
+                                        null,
+                                        tint = when {
+                                            balance > 0 -> VerdePrimario
+                                            balance == 0.0 -> Naranja
+                                            else -> RojoGasto
+                                        },
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        when {
+                                            balance > 0 -> "Vas bien — tenés un superávit"
+                                            balance == 0.0 -> "Justo — gastos igualan ingresos"
+                                            else -> "Cuidado — estás gastando más de lo que ganás"
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = TextoMuted
+                                    )
+                                }
                             }
-                        )
+                        }
                     }
-                }
 
-                // — INFO AL FINAL —
-                item {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.Top,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                Icons.Filled.Info,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "Registrá todos tus ingresos y gastos para tener una " +
-                                        "visión clara de tu situación financiera. " +
-                                        "El balance se actualiza automáticamente.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    // ── GRÁFICO ──
+                    if (movimientos.isNotEmpty()) {
+                        item {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(
+                                    selected = !graficoDeTorta,
+                                    onClick = { graficoDeTorta = false },
+                                    leadingIcon = { Icon(Icons.Rounded.ShowChart, null, Modifier.size(16.dp)) },
+                                    label = { Text("Balance") },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = VerdePrimario,
+                                        selectedLabelColor = FondoNegro,
+                                        selectedLeadingIconColor = FondoNegro
+                                    )
+                                )
+                                FilterChip(
+                                    selected = graficoDeTorta,
+                                    onClick = { graficoDeTorta = true },
+                                    leadingIcon = { Icon(Icons.Rounded.BarChart, null, Modifier.size(16.dp)) },
+                                    label = { Text("Por semana") },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = VerdePrimario,
+                                        selectedLabelColor = FondoNegro,
+                                        selectedLeadingIconColor = FondoNegro
+                                    )
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Card(
+                                Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(containerColor = FondoCard),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
+                            ) {
+                                Box(Modifier.padding(16.dp)) {
+                                    if (graficoDeTorta) GraficoBarrasPorSemana(movimientos = movimientos)
+                                    else GraficoBalanceAcumulado(movimientos = movimientos)
+                                }
+                            }
+                        }
+                    }
+
+                    // ── MOVIMIENTOS ──
+                    item {
+                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                            Text("Movimientos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextoSobreCreme)
+                            Text("${movimientos.size} registros", style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
+                        }
+                    }
+
+                    if (movimientos.isEmpty()) {
+                        item {
+                            Card(
+                                Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(containerColor = FondoCard),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
+                            ) {
+                                Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(Icons.Rounded.ReceiptLong, null, tint = TextoMuted, modifier = Modifier.size(40.dp))
+                                    Spacer(Modifier.height(8.dp))
+                                    Text("Sin movimientos", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = TextoPrimario)
+                                    Spacer(Modifier.height(4.dp))
+                                    Text("Tocá + para agregar uno", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                                }
+                            }
+                        }
+                    } else {
+                        items(movimientos, key = { it.id }) { movimiento ->
+                            FilaMovimiento(
+                                movimiento = movimiento,
+                                onEditar = { movimientoEditando = movimiento; mostrarBottomSheet = true },
+                                onBorrar = { idParaBorrar = movimiento.id; mostrarConfirmBorrado = true }
                             )
                         }
+                    }
+
+                    // ── INFO ──
+                    item {
+                        Spacer(Modifier.height(4.dp))
+                        Card(
+                            Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = FondoCard),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
+                        ) {
+                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Rounded.Info, null, tint = VerdePrimario, modifier = Modifier.size(16.dp))
+                                Text(
+                                    "Registrá todos tus ingresos y gastos para tener una visión clara de tu situación financiera.",
+                                    style = MaterialTheme.typography.bodySmall, color = TextoMuted, lineHeight = 18.sp
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(80.dp))
                     }
                 }
             }
@@ -534,97 +421,89 @@ fun PresupuestoScreen() {
     }
 }
 
-// Fila individual de un movimiento
+
+// ═══════════════════════════════════════════════════════════
+// RESUMEN ITEM — columna de Ingresos/Gastos/Balance
+// ═══════════════════════════════════════════════════════════
 @Composable
-fun FilaMovimiento(
-    movimiento: MovimientoItem,
-    onEditar: () -> Unit,
-    onBorrar: () -> Unit
-) {
+private fun ResumenItem(label: String, valor: Double, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = TextoSecundario, letterSpacing = 0.8.sp)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "${if (valor >= 0 && label == "BALANCE") "+" else ""}$${String.format("%,.0f", valor).replace(",", ".")}",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+    }
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// FILA MOVIMIENTO — card negra con ícono, monto, acciones
+// ═══════════════════════════════════════════════════════════
+@Composable
+fun FilaMovimiento(movimiento: MovimientoItem, onEditar: () -> Unit, onBorrar: () -> Unit) {
     val esIngreso = movimiento.tipo == "ingreso"
-    val icono = ICONOS_CATEGORIA[movimiento.categoria] ?: Icons.Filled.AttachMoney
-    val colorIcono = COLORES_CATEGORIA[movimiento.categoria] ?: Color(0xFF6B7280)
+    val icono = ICONOS_CATEGORIA[movimiento.categoria] ?: Icons.Rounded.MoreHoriz
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(16.dp), ambientColor = SombraCard, spotColor = SombraCard),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = FondoCard),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            Modifier.fillMaxWidth().padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Círculo con ícono de la categoría
+            // Ícono circular
             Surface(
-                shape = androidx.compose.foundation.shape.CircleShape,
-                color = colorIcono.copy(alpha = 0.15f),
+                shape = CircleShape,
+                color = if (esIngreso) VerdePrimario.copy(alpha = 0.15f) else TextoSecundario.copy(alpha = 0.1f),
                 modifier = Modifier.size(40.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icono,
-                        contentDescription = movimiento.categoria,
-                        tint = colorIcono,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(icono, movimiento.categoria, tint = if (esIngreso) VerdePrimario else TextoMuted, modifier = Modifier.size(20.dp))
                 }
             }
 
-            // Categoría, descripción y fecha
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = movimiento.categoria,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
+            // Info
+            Column(Modifier.weight(1f)) {
+                Text(movimiento.categoria, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = TextoPrimario)
                 if (!movimiento.descripcion.isNullOrBlank()) {
-                    Text(
-                        text = movimiento.descripcion,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text(movimiento.descripcion, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
                 }
-                Text(
-                    text = movimiento.fecha.substring(0, 10),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text(movimiento.fecha.substring(0, 10), style = MaterialTheme.typography.labelSmall, color = TextoMuted)
             }
 
-            // Monto con color
+            // Monto
             Text(
-                text = "${if (esIngreso) "+" else "-"}$${String.format("%,.0f", movimiento.monto)}",
+                "${if (esIngreso) "+" else "-"}$${String.format("%,.0f", movimiento.monto).replace(",", ".")}",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = if (esIngreso) Color(0xFF16A34A) else Color(0xFFDC2626)
+                color = if (esIngreso) VerdePrimario else RojoGasto
             )
 
-            // Botones
-            Row {
-                IconButton(onClick = onEditar, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        Icons.Filled.Edit,
-                        contentDescription = "Editar",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
+            // Acciones
+            Column {
+                IconButton(onClick = onEditar, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Rounded.Edit, "Editar", tint = VerdePrimario, modifier = Modifier.size(16.dp))
                 }
-                IconButton(onClick = onBorrar, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        Icons.Filled.Delete,
-                        contentDescription = "Borrar",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(16.dp)
-                    )
+                IconButton(onClick = onBorrar, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Rounded.Delete, "Borrar", tint = TextoMuted, modifier = Modifier.size(16.dp))
                 }
             }
         }
     }
 }
 
-// Formulario dentro del BottomSheet
+
+// ═══════════════════════════════════════════════════════════
+// FORMULARIO — Dialog para agregar/editar (tema oscuro)
+// ═══════════════════════════════════════════════════════════
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FormularioMovimiento(
@@ -632,126 +511,114 @@ fun FormularioMovimiento(
     onGuardar: (String, String, String, Double) -> Unit,
     onCancelar: () -> Unit
 ) {
-    // Si estamos editando, pre-llenamos los campos
     var tipo by remember { mutableStateOf(movimientoInicial?.tipo ?: "gasto") }
     var categoria by remember { mutableStateOf(movimientoInicial?.categoria ?: "") }
     var descripcion by remember { mutableStateOf(movimientoInicial?.descripcion ?: "") }
     var monto by remember { mutableStateOf(movimientoInicial?.monto?.toString() ?: "") }
     var expandirCategorias by remember { mutableStateOf(false) }
 
-    // Las categorías cambian según el tipo seleccionado
     val categorias = if (tipo == "ingreso") CATEGORIAS_INGRESO else CATEGORIAS_GASTO
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-            .imePadding(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp).imePadding(),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Text(
-            text = if (movimientoInicial != null) "Editar movimiento" else "Nuevo movimiento",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+            if (movimientoInicial != null) "Editar movimiento" else "Nuevo movimiento",
+            style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextoPrimario
         )
 
-        // Toggle ingreso / gasto
+        // Toggle ingreso/gasto
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("ingreso", "gasto").forEach { opcion ->
                 FilterChip(
                     selected = tipo == opcion,
-                    onClick = {
-                        tipo = opcion
-                        categoria = "" // limpia la categoría al cambiar tipo
+                    onClick = { tipo = opcion; categoria = "" },
+                    leadingIcon = {
+                        Icon(
+                            if (opcion == "ingreso") Icons.Rounded.TrendingUp else Icons.Rounded.TrendingDown,
+                            null, modifier = Modifier.size(16.dp)
+                        )
                     },
-                    label = {
-                        Text(if (opcion == "ingreso") "🟢 Ingreso" else "🔴 Gasto")
-                    }
+                    label = { Text(if (opcion == "ingreso") "Ingreso" else "Gasto") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = if (opcion == "ingreso") VerdePrimario else RojoGasto,
+                        selectedLabelColor = if (opcion == "ingreso") FondoNegro else TextoPrimario,
+                        selectedLeadingIconColor = if (opcion == "ingreso") FondoNegro else TextoPrimario
+                    )
                 )
             }
         }
 
-        // Selector de categoría
-        ExposedDropdownMenuBox(
-            expanded = expandirCategorias,
-            onExpandedChange = { expandirCategorias = it }
-        ) {
+        // Categoría
+        ExposedDropdownMenuBox(expanded = expandirCategorias, onExpandedChange = { expandirCategorias = it }) {
             OutlinedTextField(
-                value = categoria,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Categoría") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandirCategorias) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
+                value = categoria, onValueChange = {}, readOnly = true,
+                label = { Text("Categoría", color = TextoSecundario) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandirCategorias) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = TextoPrimario, unfocusedTextColor = TextoPrimario,
+                    focusedBorderColor = VerdePrimario, unfocusedBorderColor = Divisor,
+                    cursorColor = VerdePrimario
+                ),
+                modifier = Modifier.fillMaxWidth().menuAnchor()
             )
-            ExposedDropdownMenu(
-                expanded = expandirCategorias,
-                onDismissRequest = { expandirCategorias = false }
-            ) {
+            ExposedDropdownMenu(expanded = expandirCategorias, onDismissRequest = { expandirCategorias = false }) {
                 categorias.forEach { cat ->
                     DropdownMenuItem(
                         text = { Text(cat) },
-                        onClick = {
-                            categoria = cat
-                            expandirCategorias = false
-                        }
+                        leadingIcon = {
+                            Icon(ICONOS_CATEGORIA[cat] ?: Icons.Rounded.MoreHoriz, null, modifier = Modifier.size(18.dp))
+                        },
+                        onClick = { categoria = cat; expandirCategorias = false }
                     )
                 }
             }
         }
 
-        // Campo descripción opcional
+        // Descripción
         OutlinedTextField(
-            value = descripcion,
-            onValueChange = { descripcion = it },
-            label = { Text("Descripción (opcional)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            value = descripcion, onValueChange = { descripcion = it },
+            label = { Text("Descripción (opcional)", color = TextoSecundario) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = TextoPrimario, unfocusedTextColor = TextoPrimario,
+                focusedBorderColor = VerdePrimario, unfocusedBorderColor = Divisor,
+                cursorColor = VerdePrimario
+            ),
+            modifier = Modifier.fillMaxWidth(), singleLine = true
         )
 
-        // Campo monto
+        // Monto
         OutlinedTextField(
-            value = monto,
-            onValueChange = { monto = it },
-            label = { Text("Monto") },
-            prefix = { Text("$") },
+            value = monto, onValueChange = { monto = it },
+            label = { Text("Monto", color = TextoSecundario) },
+            prefix = { Text("$", color = VerdePrimario, fontWeight = FontWeight.Bold) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = TextoPrimario, unfocusedTextColor = TextoPrimario,
+                focusedBorderColor = VerdePrimario, unfocusedBorderColor = Divisor,
+                cursorColor = VerdePrimario
+            ),
+            modifier = Modifier.fillMaxWidth(), singleLine = true
         )
 
         // Botones
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
-                onClick = onCancelar,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Cancelar")
-            }
+                onClick = onCancelar, modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = TextoSecundario)
+            ) { Text("Cancelar") }
             Button(
                 onClick = {
-                    val montoDouble = monto.toDoubleOrNull()
-                    if (categoria.isNotBlank() && montoDouble != null && montoDouble > 0) {
-                        onGuardar(tipo, categoria, descripcion, montoDouble)
-                    }
+                    val m = monto.toDoubleOrNull()
+                    if (categoria.isNotBlank() && m != null && m > 0) onGuardar(tipo, categoria, descripcion, m)
                 },
                 modifier = Modifier.weight(1f),
-                enabled = categoria.isNotBlank() && monto.toDoubleOrNull() != null
-            ) {
-                Text("Guardar")
-            }
+                enabled = categoria.isNotBlank() && monto.toDoubleOrNull() != null,
+                colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario, contentColor = FondoNegro)
+            ) { Text("Guardar", fontWeight = FontWeight.Bold) }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(8.dp))
     }
 }
-
-// Constante de color verde para usar en la Screen
-// La definimos acá porque no podemos usar MaterialTheme fuera de un @Composable
-private val VERDE = Color(0xFF16A34A)
