@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,12 +31,14 @@ import androidx.navigation.NavController
 import com.candlelabs.gestionpersonal.R
 import com.candlelabs.gestionpersonal.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController) {
 
     val context = LocalContext.current
     val viewModel: HomeViewModel = viewModel(factory = HomeViewModel.factory(context))
     val uiState by viewModel.uiState.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     when (uiState) {
         is HomeUiState.Cargando -> {
@@ -53,97 +56,106 @@ fun HomeScreen(navController: NavController) {
             val datos = uiState as HomeUiState.Exito
             val visible by viewModel.balanceVisible.collectAsState()
 
-            Column(
+            // PullToRefreshBox envuelve todo el contenido scrolleable
+            // Cuando el usuario arrastra para abajo, llama a recargar()
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.recargar() },
                 modifier = Modifier
                     .fillMaxSize()
                     .background(FondoNegro)
-                    .verticalScroll(rememberScrollState())
             ) {
-                // ══════════════════════════════════════════════
-                // HEADER — compacto, logo 140dp, centrado
-                // ══════════════════════════════════════════════
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(FondoNegro)
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 0.dp, bottom = 40.dp)
-                ) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.padding(start = 8.dp)) {
-                            Text(
-                                "Hola, ${datos.nombre}",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextoPrimario
-                            )
-                            Text(
-                                "Tu panorama financiero hoy",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextoSecundario
-                            )
-                        }
-                        Image(
-                            painter = painterResource(id = R.drawable.logo_plata_clara),
-                            contentDescription = "Plata Clara",
-                            modifier = Modifier.height(140.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-                }
-
-                // ══════════════════════════════════════════════
-                // BLOQUE CREMA
-                // ══════════════════════════════════════════════
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .defaultMinSize(minHeight = 700.dp)
-                        .padding(horizontal = 16.dp)
-                        .background(FondoPrincipal, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                        .padding(horizontal = 14.dp)
-                        .padding(top = 8.dp, bottom = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    // HERO CARD
-                    HeroCard(
-                        balance = datos.balance,
-                        totalIngresos = datos.totalIngresos,
-                        totalGastos = datos.totalGastos,
-                        visible = visible,
-                        onToggle = { viewModel.toggleBalanceVisible() },
-                        ipcUltimo = datos.ipcUltimo,
-                        ipcAnterior = datos.ipcAnterior,
-                        modifier = Modifier.offset(y = (-40).dp)
-                    )
-
-                    // CATEGORÍAS
-                    if (datos.categorias.isNotEmpty()) {
-                        Text(
-                            "TU PRESUPUESTO",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextoSobreCreme,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                            modifier = Modifier.padding(start = 4.dp).offset(y = (-28).dp)
-                        )
-                        datos.categorias.chunked(2).forEach { fila ->
-                            Row(
-                                Modifier.fillMaxWidth().offset(y = (-28).dp),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                fila.forEach { cat -> CategoriaCard(cat, visible, Modifier.weight(1f)) }
-                                if (fila.size == 1) Spacer(Modifier.weight(1f))
+                    // ══════════════════════════════════════════════
+                    // HEADER — compacto, logo 140dp, centrado
+                    // ══════════════════════════════════════════════
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(FondoNegro)
+                            .padding(horizontal = 16.dp)
+                            .padding(top = 0.dp, bottom = 40.dp)
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.padding(start = 8.dp)) {
+                                Text(
+                                    "Hola, ${datos.nombre}",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextoPrimario
+                                )
+                                Text(
+                                    "Tu panorama financiero hoy",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextoSecundario
+                                )
                             }
+                            Image(
+                                painter = painterResource(id = R.drawable.logo_plata_clara),
+                                contentDescription = "Plata Clara",
+                                modifier = Modifier.height(140.dp),
+                                contentScale = ContentScale.Fit
+                            )
                         }
                     }
 
-                    // CONSEJO
-                    ConsejoCard(datos.consejo, Modifier.offset(y = (-28).dp))
+                    // ══════════════════════════════════════════════
+                    // BLOQUE CREMA
+                    // ══════════════════════════════════════════════
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 700.dp)
+                            .padding(horizontal = 16.dp)
+                            .background(FondoPrincipal, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                            .padding(horizontal = 14.dp)
+                            .padding(top = 8.dp, bottom = 32.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // HERO CARD
+                        HeroCard(
+                            balance = datos.balance,
+                            totalIngresos = datos.totalIngresos,
+                            totalGastos = datos.totalGastos,
+                            visible = visible,
+                            onToggle = { viewModel.toggleBalanceVisible() },
+                            ipcUltimo = datos.ipcUltimo,
+                            ipcAnterior = datos.ipcAnterior,
+                            modifier = Modifier.offset(y = (-40).dp)
+                        )
+
+                        // CATEGORÍAS
+                        if (datos.categorias.isNotEmpty()) {
+                            Text(
+                                "TU PRESUPUESTO",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextoSobreCreme,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp,
+                                modifier = Modifier.padding(start = 4.dp).offset(y = (-28).dp)
+                            )
+                            datos.categorias.chunked(2).forEach { fila ->
+                                Row(
+                                    Modifier.fillMaxWidth().offset(y = (-28).dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    fila.forEach { cat -> CategoriaCard(cat, visible, Modifier.weight(1f)) }
+                                    if (fila.size == 1) Spacer(Modifier.weight(1f))
+                                }
+                            }
+                        }
+
+                        // CONSEJO
+                        ConsejoCard(datos.consejo, Modifier.offset(y = (-28).dp))
+                    }
                 }
             }
         }
