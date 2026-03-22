@@ -1,13 +1,26 @@
 package com.candlelabs.gestionpersonal.ui
 
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.candlelabs.gestionpersonal.R
 import com.candlelabs.gestionpersonal.network.SupabaseClient
+import com.candlelabs.gestionpersonal.ui.theme.*
 import io.github.jan.supabase.auth.auth
+import kotlinx.coroutines.delay
 
 object Rutas {
+    const val SPLASH      = "splash"
     const val AUTH        = "auth"
     const val ONBOARDING  = "onboarding"
     const val MAIN        = "main"
@@ -18,6 +31,7 @@ object Rutas {
     const val HOME        = "home"
     const val ASISTENTE   = "asistente"
     const val PRESUPUESTO = "presupuesto"
+    const val PERFIL      = "perfil"
     const val DOLAR_DETALLE = "dolar_detalle/{casa}/{nombre}"
 
     fun dolarDetalleRuta(casa: String, nombre: String) = "dolar_detalle/$casa/$nombre"
@@ -26,22 +40,33 @@ object Rutas {
 @Composable
 fun NavGraph(navController: NavHostController) {
 
-    // Verificamos si ya tiene sesión activa en Supabase
-    // Si sí → va directo al main
-    // Si no → va al auth
-    val sesionActiva = try {
-        SupabaseClient.instance.auth.currentSessionOrNull() != null
-    } catch (e: Exception) {
-        false
-    }
-
-    val destinoInicial = if (sesionActiva) Rutas.MAIN else Rutas.AUTH
-
     NavHost(
         navController = navController,
-        startDestination = destinoInicial
+        startDestination = Rutas.SPLASH
     ) {
-        // Pantalla de login/registro
+        // ── SPLASH — espera verificación de sesión ──
+        composable(Rutas.SPLASH) {
+            SplashScreen()
+
+            LaunchedEffect(Unit) {
+                // Le damos un momento a Supabase para restaurar la sesión
+                delay(800)
+
+                val sesionActiva = try {
+                    SupabaseClient.instance.auth.currentSessionOrNull() != null
+                } catch (e: Exception) {
+                    false
+                }
+
+                val destino = if (sesionActiva) Rutas.MAIN else Rutas.AUTH
+
+                navController.navigate(destino) {
+                    popUpTo(Rutas.SPLASH) { inclusive = true }
+                }
+            }
+        }
+
+        // ── AUTH — login/registro ──
         composable(Rutas.AUTH) {
             AuthScreen(
                 onAuthExitoso = {
@@ -52,7 +77,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // Onboarding (nombre del usuario) — se mantiene por si lo necesitás
+        // ── ONBOARDING — se mantiene por si lo necesitás ──
         composable(Rutas.ONBOARDING) {
             OnboardingScreen(
                 onNombreGuardado = {
@@ -63,8 +88,43 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
+        // ── MAIN — home con bottom nav ──
         composable(Rutas.MAIN) {
-            MainScreen()
+            MainScreen(
+                onCerrarSesion = {
+                    navController.navigate(Rutas.AUTH) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SPLASH SCREEN — logo + loading mientras verifica sesión
+// ═══════════════════════════════════════════════════════════
+@Composable
+private fun SplashScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(FondoNegro),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                painter = painterResource(id = R.drawable.logo_plata_clara),
+                contentDescription = "Plata Clara",
+                modifier = Modifier.height(250.dp),
+                contentScale = ContentScale.Fit
+            )
+            Spacer(Modifier.height(24.dp))
+            CircularProgressIndicator(
+                color = VerdePrimario,
+                modifier = Modifier.size(32.dp),
+                strokeWidth = 3.dp
+            )
         }
     }
 }

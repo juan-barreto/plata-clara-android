@@ -62,7 +62,8 @@ fun AuthScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 32.dp),
+                .padding(horizontal = 32.dp)
+                .padding(top = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -71,11 +72,10 @@ fun AuthScreen(
             Image(
                 painter = painterResource(id = R.drawable.logo_plata_clara),
                 contentDescription = "Plata Clara",
-                modifier = Modifier.height(160.dp),
+                modifier = Modifier.height(250.dp),
                 contentScale = ContentScale.Fit
             )
 
-            Spacer(Modifier.height(12.dp))
 
             // Título
 
@@ -83,7 +83,7 @@ fun AuthScreen(
                 "Tu amiga en la crisis financiera",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextoSecundario,
-                modifier = Modifier.offset(y = (-20).dp)
+                modifier = Modifier.offset(y = -45.dp),
                 )
 
 
@@ -138,7 +138,6 @@ fun AuthScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(Modifier.height(20.dp))
 
             // ── BOTÓN PRINCIPAL ──
             Button(
@@ -184,7 +183,11 @@ fun AuthScreen(
                 border = androidx.compose.foundation.BorderStroke(1.dp, Divisor),
                 enabled = uiState !is AuthUiState.Cargando
             ) {
-                Icon(Icons.Rounded.Person, null, tint = TextoPrimario, modifier = Modifier.size(20.dp))
+                Image(
+                    painter = painterResource(id = R.drawable.ic_google),
+                    contentDescription = "Google",
+                    modifier = Modifier.size(20.dp)
+                )
                 Spacer(Modifier.width(8.dp))
                 Text("Continuar con Google", color = TextoPrimario, fontWeight = FontWeight.Medium)
             }

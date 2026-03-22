@@ -1,6 +1,7 @@
 package com.candlelabs.gestionpersonal.ui
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -40,6 +42,8 @@ import com.candlelabs.gestionpersonal.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import com.candlelabs.gestionpersonal.network.SupabaseClient
+import io.github.jan.supabase.auth.auth
 
 data class ItemNavegacion(val ruta: String, val iconoRes: Int, val etiqueta: String)
 data class ItemMas(val ruta: String, val icono: ImageVector, val titulo: String, val subtitulo: String)
@@ -56,7 +60,7 @@ private val categoriasGastoRapido = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(onCerrarSesion: () -> Unit = {}) {
     val navController = rememberNavController()
     var mostrarMenuMas by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -66,7 +70,6 @@ fun MainScreen() {
     var mostrarFabIcon by remember { mutableStateOf(true) }
     var circuloExpandiendo by remember { mutableStateOf(true) }
     var fabOffsetY by remember { mutableFloatStateOf(0f) }
-
     val items = listOf(
         ItemNavegacion(Rutas.HOME, R.drawable.icon_home, "Inicio"),
         ItemNavegacion(Rutas.DOLAR, R.drawable.icon_dolar, "Dólar"),
@@ -77,6 +80,7 @@ fun MainScreen() {
         ItemMas(Rutas.PRESUPUESTO, Icons.Filled.AccountBalanceWallet, "Presupuesto", "Ingresos y gastos"),
         ItemMas(Rutas.HISTORIAL, Icons.Filled.History, "Historial", "Cálculos de alquiler"),
         ItemMas(Rutas.INFO, Icons.Filled.Info, "¿Cómo funciona?", "Guía de contratos"),
+        ItemMas(Rutas.PERFIL, Icons.Filled.Person, "Perfil", "Tu cuenta y configuración"),
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -149,7 +153,7 @@ fun MainScreen() {
                             Text(item.etiqueta, style = MaterialTheme.typography.labelSmall, modifier = Modifier.offset(y = (-15).dp), color = if (sel) VerdePrimario else TextoSobreCreme)
                         }
                     }
-                    val masSel = rutaActual in listOf(Rutas.PRESUPUESTO, Rutas.HISTORIAL, Rutas.INFO)
+                    val masSel = rutaActual in listOf(Rutas.PRESUPUESTO, Rutas.HISTORIAL, Rutas.INFO, Rutas.PERFIL)
                     Column(Modifier.weight(1f).clickable { mostrarMenuMas = true }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                         Icon(painter = painterResource(R.drawable.icon_mas), contentDescription = "Más", modifier = Modifier.size(58.dp), tint = if (masSel) VerdePrimario else TextoSobreCreme)
                         Text("Más", style = MaterialTheme.typography.labelSmall, modifier = Modifier.offset(y = (-15).dp), color = if (masSel) VerdePrimario else TextoSobreCreme)
@@ -168,6 +172,18 @@ fun MainScreen() {
                     DolarDetalleScreen(back.arguments?.getString("casa") ?: "", back.arguments?.getString("nombre") ?: "", navController)
                 }
                 composable(Rutas.PRESUPUESTO) { PresupuestoScreen() }
+                composable(Rutas.PERFIL) {
+                    PerfilScreen(
+                        onCerrarSesion = {
+                            scope.launch {
+                                try {
+                                    SupabaseClient.instance.auth.signOut()
+                                } catch (_: Exception) {}
+                            }
+                            onCerrarSesion()
+                        }
+                    )
+                }
             }
         }
 
@@ -291,8 +307,15 @@ private fun GastoRapidoOverlay(
             Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
             Arrangement.SpaceBetween, Alignment.CenterVertically
         ) {
-            Text("GASTO RÁPIDO", style = MaterialTheme.typography.titleLarge, color = TextoSecundario, letterSpacing = 1.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
-            IconButton(onClick = onDismiss, modifier = Modifier.size(48.dp).padding(top = 8.dp)) {
+            Image(
+                painter = painterResource(id = R.drawable.gasto_express),
+                contentDescription = "Gasto Express",
+                modifier = Modifier.height(120.dp)
+                    .padding(top = 10.dp)
+                    .offset(x = -20.dp),
+                contentScale = ContentScale.Fit
+            )
+            IconButton(onClick = onDismiss, modifier = Modifier.size(75.dp).padding(top = 6.dp)) {
                 Icon(imageVector = Icons.Rounded.Close, contentDescription = null, tint = TextoPrimario, modifier = Modifier.size(30.dp))
             }
         }
