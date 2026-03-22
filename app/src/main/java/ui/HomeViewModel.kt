@@ -23,7 +23,8 @@ sealed class HomeUiState {
         val ipcUltimo: String?,
         val ultimoAlquiler: HistorialItem?,
         val diasParaAjuste: Long?,
-        val consejo: String
+        val consejo: String,
+        val balance: Double // ← balance real del presupuesto mensual
     ) : HomeUiState()
     data class Error(val mensaje: String) : HomeUiState()
 }
@@ -33,8 +34,18 @@ class HomeViewModel(private val context: Context) : ViewModel() {
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Cargando)
     val uiState: StateFlow<HomeUiState> = _uiState
 
+    // Estado del ojo — separado del uiState para que el toggle sea instantáneo
+    // sin recargar toda la pantalla
+    private val _balanceVisible = MutableStateFlow(true)
+    val balanceVisible: StateFlow<Boolean> = _balanceVisible
+
     init {
         cargarDatos()
+    }
+
+    // Alterna entre mostrar y ocultar el balance
+    fun toggleBalanceVisible() {
+        _balanceVisible.value = !_balanceVisible.value
     }
 
     private fun cargarDatos() {
@@ -79,9 +90,6 @@ class HomeViewModel(private val context: Context) : ViewModel() {
 
                 val ultimoAlquiler = historial.lastOrNull()
 
-                // Próximo ajuste — asume trimestral por defecto
-                // Próximo ajuste — usando Calendar en vez de java.time (compatible con API 24)
-                // Próximo ajuste — java.time disponible desde minSdk 26
                 val diasParaAjuste: Long? = try {
                     if (ultimoAlquiler != null) {
                         val fechaInicio = java.time.LocalDate.parse(ultimoAlquiler.fecha_inicio)
@@ -90,6 +98,16 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                         java.time.temporal.ChronoUnit.DAYS.between(hoy, proximoAjuste)
                     } else null
                 } catch (e: Exception) { null }
+
+                // Balance del presupuesto mensual
+                // Reutilizamos el mismo endpoint que PresupuestoViewModel
+                // Si falla (sin datos) devuelve 0.0
+                val balance = try {
+                    val movimientos = RetrofitClient.instance.getPresupuesto("mensual")
+                    val ingresos = movimientos.filter { it.tipo == "ingreso" }.sumOf { it.monto }
+                    val gastos = movimientos.filter { it.tipo == "gasto" }.sumOf { it.monto }
+                    ingresos - gastos
+                } catch (e: Exception) { 0.0 }
 
                 // Consejo del día — rota según el día del año
                 val consejos = listOf(
@@ -107,7 +125,6 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 val diaDelAnio = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR)
                 val consejo = consejos[diaDelAnio % consejos.size]
 
-                // Todo calculado — actualizamos el estado
                 _uiState.value = HomeUiState.Exito(
                     nombre = nombre,
                     dolarBlue = blue,
@@ -117,7 +134,8 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                     ipcUltimo = ipcUltimo,
                     ultimoAlquiler = ultimoAlquiler,
                     diasParaAjuste = diasParaAjuste,
-                    consejo = consejo
+                    consejo = consejo,
+                    balance = balance // ← balance real
                 )
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error(e.message ?: "Error desconocido")

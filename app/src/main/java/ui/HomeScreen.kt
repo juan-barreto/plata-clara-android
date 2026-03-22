@@ -22,6 +22,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.candlelabs.gestionpersonal.R
 import com.candlelabs.gestionpersonal.model.VariacionDolarResponse
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -59,6 +62,7 @@ fun HomeScreen(navController: NavController) {
 
         is HomeUiState.Exito -> {
             val datos = uiState as HomeUiState.Exito
+            val balanceVisible by viewModel.balanceVisible.collectAsState()
 
             // Column raíz — fondo negro, scroll vertical
             Column(
@@ -105,23 +109,22 @@ fun HomeScreen(navController: NavController) {
                     }
                 }
 
-                // — BLOQUE CREMA — más angosto que el header, negro visible a los costados
-                // Las esquinas redondeadas arriba dan el efecto de "superficie" sobre el negro
+                // — BLOQUE CREMA — negro visible a los costados
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .defaultMinSize(minHeight = 800.dp) // ← llega hasta el navbar
-                        .padding(horizontal = 16.dp)        // ← negro visible a los costados
+                        .defaultMinSize(minHeight = 800.dp)
+                        .padding(horizontal = 16.dp)
                         .background(
                             color = Color(0xFFF8F2F2),
                             shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
                         )
-                        .padding(horizontal = 12.dp)        // ← padding interno de las cards
+                        .padding(horizontal = 12.dp)
                         .padding(top = 15.dp, bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
 
-                    // — HERO CARD — Superávit con borde verde
+                    // — HERO CARD — balance real con ojo
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -138,18 +141,52 @@ fun HomeScreen(navController: NavController) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // label Superávit / Déficit / Sin movimientos
                             Text(
-                                text = "Superávit",
+                                text = when {
+                                    datos.balance > 0 -> "Superávit"
+                                    datos.balance < 0 -> "Déficit"
+                                    else -> "Sin movimientos"
+                                },
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF000000)
                             )
-                            Text(
-                                text = "$500.000", // ← dato falso, después conectamos
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF00B872)
-                            )
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // número o asteriscos
+                                Text(
+                                    text = if (balanceVisible) {
+                                        "$${String.format("%,.0f", datos.balance).replace(",", ".")}"
+                                    } else {
+                                        "$  ••••••"
+                                    },
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = when {
+                                        datos.balance > 0 -> Color(0xFF00B872)
+                                        datos.balance < 0 -> Color(0xFFFF4444)
+                                        else -> Color(0xFF888888)
+                                    }
+                                )
+
+                                // ícono del ojo
+                                IconButton(
+                                    onClick = { viewModel.toggleBalanceVisible() },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (balanceVisible) Icons.Filled.Visibility
+                                        else Icons.Filled.VisibilityOff,
+                                        contentDescription = if (balanceVisible) "Ocultar" else "Mostrar",
+                                        tint = Color(0xFF888888),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -204,7 +241,6 @@ fun HomeScreen(navController: NavController) {
                                     Text(
                                         text = "RIPTE",
                                         style = MaterialTheme.typography.labelSmall,
-                                        modifier = Modifier.padding(horizontal = 1.dp),
                                         color = Color(0xFF888888)
                                     )
                                     Text(
@@ -265,7 +301,7 @@ fun IndicadorCard(
     }
 
     Card(
-        modifier = modifier.fillMaxWidth(), // ← usa el modifier externo
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)

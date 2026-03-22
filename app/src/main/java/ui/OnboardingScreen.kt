@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -59,7 +60,7 @@ fun OnboardingScreen(onNombreGuardado: () -> Unit) {
             .fillMaxSize()
             // Fondo gris oscuro — mismo que el splash, consistente con el logo
             .background(Color(0xFF1E1E1E))
-            .padding(32.dp)
+            .padding(all = 32.dp)
             .imePadding(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -68,11 +69,11 @@ fun OnboardingScreen(onNombreGuardado: () -> Unit) {
         Image(
             painter = painterResource(id = R.drawable.logo_plata_clara),
             contentDescription = "Plata Clara",
-            modifier = Modifier.fillMaxWidth(0.8f),
+            modifier = Modifier.fillMaxWidth(1f),
             contentScale = ContentScale.Fit
         )
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Pregunta
         Text(
@@ -80,7 +81,7 @@ fun OnboardingScreen(onNombreGuardado: () -> Unit) {
             fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold,
             color = Color.White,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.width(300.dp)
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -90,6 +91,7 @@ fun OnboardingScreen(onNombreGuardado: () -> Unit) {
             value = nombre,
             onValueChange = { nombre = it },
             label = { Text("Tu nombre", color = Color.White.copy(alpha = 0.8f)) },
+            shape = RoundedCornerShape(12.dp),
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color(0xFF16A34A),
@@ -100,7 +102,7 @@ fun OnboardingScreen(onNombreGuardado: () -> Unit) {
             ),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { guardarYContinuar() }),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.width(300.dp)
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -117,7 +119,7 @@ fun OnboardingScreen(onNombreGuardado: () -> Unit) {
                 disabledContentColor = Color.White.copy(alpha = 0.3f)
             ),
             modifier = Modifier
-                .fillMaxWidth()
+                .width(200.dp)
                 .height(52.dp)
         ) {
             Text(
