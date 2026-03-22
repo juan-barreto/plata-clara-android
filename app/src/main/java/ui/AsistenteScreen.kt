@@ -1,6 +1,8 @@
 package com.candlelabs.gestionpersonal.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,7 +11,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -30,6 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,12 +47,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.candlelabs.gestionpersonal.R
 
 @Composable
 fun AsistenteScreen() {
@@ -60,7 +66,6 @@ fun AsistenteScreen() {
     val esperando by viewModel.esperando.collectAsState()
     var input by remember { mutableStateOf("") }
 
-    // Scroll automático al último mensaje
     val listState = rememberLazyListState()
     LaunchedEffect(mensajes.size) {
         if (mensajes.isNotEmpty()) {
@@ -68,76 +73,68 @@ fun AsistenteScreen() {
         }
     }
 
-    // windowInsetsPadding(WindowInsets.ime) le dice al Column que ceda el espacio
-    // que ocupa el teclado — el LazyColumn con weight(1f) se comprime automáticamente
-    // y el input sube justo arriba del teclado
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color(0xFFF8F2F2))
             .windowInsetsPadding(WindowInsets.ime)
     ) {
 
-        // — HEADER —
-        Row(
+        // ─── HEADER NEGRO ───────────────────────────────────────
+        // Usamos Box para que el logo, el subtítulo y el botón
+        // se posicionen independientemente dentro del mismo espacio.
+        // Así el Image de 100dp no empuja al Text fuera del header.
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.primary)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .height(70.dp)
+                .background(Color(0xFF000000))
+                .padding(horizontal = 16.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Avatar de Clara
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFFFD700)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "C",
-                        color = Color(0xFF14532D),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "Clara",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Text(
-                        text = "Asistente financiero",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                }
-            }
-            // Botón limpiar chat
-            IconButton(onClick = { viewModel.limpiarChat() }) {
+            // Logo — centrado verticalmente, alineado a la izquierda
+            Image(
+                painter = painterResource(id = R.drawable.texto_clarai),
+                contentDescription = "ClaraAi",
+                modifier = Modifier
+                    .height(100.dp)
+                    .align(Alignment.CenterStart)
+                    .padding(bottom = 5.dp)
+                    .offset(x = (-16).dp),
+                contentScale = ContentScale.FillHeight
+            )
+
+            // Subtítulo — pegado al borde inferior izquierdo del header
+            Text(
+                text = "Asistente financiero",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF888888),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(bottom = 15.dp)
+            )
+
+            // Botón limpiar — centrado vertical, alineado a la derecha
+            IconButton(
+                onClick = { viewModel.limpiarChat() },
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) {
                 Icon(
                     Icons.Filled.Delete,
                     contentDescription = "Limpiar chat",
-                    tint = Color.White
+                    tint = Color(0xFF888888)
                 )
             }
         }
 
-        // — LISTA DE MENSAJES —
-        // weight(1f) hace que el LazyColumn ocupe todo el espacio disponible
-        // y ceda espacio cuando el teclado aparece
+        // ─── LISTA DE MENSAJES ──────────────────────────────────
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .weight(1f)
+                .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Mensaje de bienvenida si el chat está vacío
             if (mensajes.isEmpty()) {
                 item {
                     BurbujaMensaje(
@@ -157,47 +154,73 @@ fun AsistenteScreen() {
             }
         }
 
-        // — INPUT —
+        // ─── INPUT ──────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
+                .background(Color.White)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
                 value = input,
                 onValueChange = { input = it },
-                placeholder = { Text("Preguntale a Clara...") },
+                placeholder = {
+                    Text(
+                        "Preguntale a Clara...",
+                        color = Color(0xFF888888)
+                    )
+                },
                 modifier = Modifier.weight(1f),
                 enabled = !esperando,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(
                     onSend = {
+                        if (input.isNotBlank()) {
+                            viewModel.enviarMensaje(input)
+                            input = ""
+                        }
+                    }
+                ),
+                maxLines = 3,
+                shape = RoundedCornerShape(24.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFF00B872),
+                    unfocusedBorderColor = Color(0xFFDDDDDD),
+                    cursorColor = Color(0xFF00B872)
+                )
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            IconButton(
+                onClick = {
+                    if (input.isNotBlank()) {
                         viewModel.enviarMensaje(input)
                         input = ""
                     }
-                ),
-                maxLines = 3
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            // Botón enviar — muestra spinner si está esperando
-            IconButton(
-                onClick = {
-                    viewModel.enviarMensaje(input)
-                    input = ""
                 },
-                enabled = !esperando && input.isNotBlank()
+                enabled = !esperando && input.isNotBlank(),
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (input.isNotBlank() && !esperando) Color(0xFF00B872)
+                        else Color(0xFFDDDDDD)
+                    )
             ) {
                 if (esperando) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.White
                     )
                 } else {
                     Icon(
                         Icons.Filled.Send,
                         contentDescription = "Enviar",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -205,7 +228,7 @@ fun AsistenteScreen() {
     }
 }
 
-// Burbuja de mensaje — estilo diferente para usuario y asistente
+// ─── BURBUJA DE MENSAJE ─────────────────────────────────────────
 @Composable
 fun BurbujaMensaje(mensaje: MensajeChatUI) {
     val esUsuario = mensaje.rol == "user"
@@ -226,8 +249,21 @@ fun BurbujaMensaje(mensaje: MensajeChatUI) {
                     )
                 )
                 .background(
-                    if (esUsuario) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.surfaceVariant
+                    if (esUsuario) Color(0xFF00B872)
+                    else Color.White
+                )
+                .then(
+                    if (!esUsuario) Modifier.border(
+                        width = 0.5.dp,
+                        color = Color(0xFFE0E0E0),
+                        shape = RoundedCornerShape(
+                            topStart = 16.dp,
+                            topEnd = 16.dp,
+                            bottomStart = 4.dp,
+                            bottomEnd = 16.dp
+                        )
+                    )
+                    else Modifier
                 )
                 .padding(12.dp)
         ) {
@@ -235,13 +271,13 @@ fun BurbujaMensaje(mensaje: MensajeChatUI) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(16.dp),
                     strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Color(0xFF00B872)
                 )
             } else {
                 Text(
                     text = mensaje.contenido,
                     color = if (esUsuario) Color.White
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    else Color(0xFF000000),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

@@ -1,5 +1,6 @@
 package com.candlelabs.gestionpersonal.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,7 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-
+import androidx.compose.ui.graphics.Color
 @Composable
 fun HistorialScreen() {
 
@@ -77,9 +78,40 @@ fun HistorialScreen() {
         is HistorialUiState.Exito -> {
             val items = (uiState as HistorialUiState.Exito).items
 
+            // — LISTA VACÍA —
+            if (items.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0xFFF8F2F2)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "📋",
+                            style = MaterialTheme.typography.displayMedium
+                        )
+                        Text(
+                            text = "No hay cálculos que mostrar",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Calculá tu primer ajuste de alquiler",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                return // ← sale de la función, no dibuja el LazyColumn
+            }
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(Color(0xFFF8F2F2))
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -109,7 +141,8 @@ fun HistorialScreen() {
                 items(items) { item ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
 

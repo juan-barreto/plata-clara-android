@@ -154,7 +154,7 @@ fun MainScreen() {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(75.dp) // ← alto fijo que querés
+                    .height(70.dp) // ← alto fijo que querés
                     .shadow(elevation = 16.dp)
                     .background(Color(0xFFF8F2F2))
                     .padding(horizontal = 8.dp),
@@ -178,12 +178,13 @@ fun MainScreen() {
                         Icon(
                             painter = painterResource(id = item.iconoRes),
                             contentDescription = item.etiqueta,
-                            modifier = Modifier.size(55.dp),// ← tamaño exacto
+                            modifier = Modifier.size(58.dp),// ← tamaño exacto
                             tint = if (seleccionado) Color(0xFF00B872) else Color(0xFF000000)
                         )
                         Text(
                             text = item.etiqueta,
                             style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.offset(y = (-15).dp),
                             color = if (seleccionado) Color(0xFF00B872) else Color(0xFF000000)
                         )
                     }
@@ -200,12 +201,13 @@ fun MainScreen() {
                     Icon(
                         painter = painterResource(id = R.drawable.icon_mas),
                         contentDescription = "Más",
-                        modifier = Modifier.size(55.dp), // ← tamaño exacto
+                        modifier = Modifier.size(58.dp), // ← tamaño exacto
                         tint = if (masSeleccionado) Color(0xFF00B872) else Color(0xFF000000)
                     )
                     Text(
                         text = "Más",
                         style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.offset(y = (-15).dp),
                         color = if (masSeleccionado) Color(0xFF00B872) else Color(0xFF000000)
                     )
                 }

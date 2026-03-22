@@ -148,7 +148,7 @@ fun HomeScreen(navController: NavController) {
                                     datos.balance < 0 -> "Déficit"
                                     else -> "Sin movimientos"
                                 },
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF000000)
                             )
@@ -227,7 +227,7 @@ fun HomeScreen(navController: NavController) {
                                 Column {
                                     Text(
                                         text = "Inflación",
-                                        style = MaterialTheme.typography.labelSmall,
+                                        style = MaterialTheme.typography.labelMedium,
                                         color = Color(0xFF888888)
                                     )
                                     Text(
@@ -273,6 +273,66 @@ fun HomeScreen(navController: NavController) {
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color(0xFF000000)
                             )
+                        }
+                    }
+                    // — ÚLTIMO AJUSTE DE ALQUILER —
+                    datos.ultimoAlquiler?.let { alquiler ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+
+                                Text(
+                                    text = "Último ajuste de alquiler",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF888888)
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // — montos inicial → ajustado —
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = alquiler.tipo_indice.uppercase(),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF00B872)
+                                    )
+                                    Text(
+                                        text = "$${String.format("%,.0f", alquiler.alquiler_inicial).replace(",", ".")} → $${String.format("%,.0f", alquiler.alquiler_final).replace(",", ".")}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF000000)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                // — próximo ajuste —
+                                datos.diasParaAjuste?.let { dias ->
+                                    Text(
+                                        text = when {
+                                            dias < 0 -> "⚠️ Ajuste vencido hace ${-dias} días"
+                                            dias == 0L -> "⚠️ El ajuste vence hoy"
+                                            dias <= 15 -> "🔔 Próximo ajuste en $dias días"
+                                            else -> "📅 Próximo ajuste en $dias días"
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = when {
+                                            dias <= 0 -> Color(0xFFFF0034)
+                                            dias <= 15 -> Color(0xFFFF8800)
+                                            else -> Color(0xFF888888)
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
 
