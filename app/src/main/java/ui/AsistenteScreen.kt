@@ -87,19 +87,19 @@ fun AsistenteScreen() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(70.dp)
+                .height(75.dp)
                 .background(Color(0xFF000000))
                 .padding(horizontal = 16.dp)
         ) {
             // Logo — centrado verticalmente, alineado a la izquierda
             Image(
-                painter = painterResource(id = R.drawable.texto_clarai),
+                painter = painterResource(id = R.drawable.clarai),
                 contentDescription = "ClaraAi",
                 modifier = Modifier
-                    .height(180.dp)
+                    .height(180.dp).fillMaxWidth()
                     .align(Alignment.CenterStart)
-                    .padding(bottom = 5.dp)
-                    .offset(x = (-16).dp),
+                    .padding(bottom = 10.dp)
+                    .offset(x = (-155.dp)),
                 contentScale = ContentScale.FillHeight
             )
 

@@ -41,7 +41,7 @@ fun DolarScreen(navController: NavController) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(70.dp)
+                .height(75.dp)
                 .background(Color(0xFF000000))
                 .padding(horizontal = 16.dp)
         ) {
