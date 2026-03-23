@@ -179,8 +179,8 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}) {
                                 try {
                                     SupabaseClient.instance.auth.signOut()
                                 } catch (_: Exception) {}
+                                onCerrarSesion()
                             }
-                            onCerrarSesion()
                         }
                     )
                 }

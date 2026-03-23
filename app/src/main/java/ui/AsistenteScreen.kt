@@ -96,10 +96,10 @@ fun AsistenteScreen() {
                 painter = painterResource(id = R.drawable.clarai),
                 contentDescription = "ClaraAi",
                 modifier = Modifier
-                    .height(180.dp).fillMaxWidth()
+                    .height(200.dp).fillMaxWidth()
                     .align(Alignment.CenterStart)
                     .padding(bottom = 10.dp)
-                    .offset(x = (-155.dp)),
+                    .offset(x = (-158.dp)),
                 contentScale = ContentScale.FillHeight
             )
 
