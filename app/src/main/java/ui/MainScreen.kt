@@ -140,6 +140,7 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}) {
     Box(Modifier.fillMaxSize()) {
         Scaffold(
             contentWindowInsets = WindowInsets(0),
+            containerColor = FondoNegro,
             modifier = Modifier.statusBarsPadding(),
             bottomBar = {
                 Row(
