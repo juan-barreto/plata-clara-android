@@ -44,19 +44,25 @@ fun NavGraph(navController: NavHostController) {
         navController = navController,
         startDestination = Rutas.SPLASH
     ) {
-        // ── SPLASH — espera verificación de sesión ──
+        // ── SPLASH — espera a que Supabase restaure la sesión ──
         composable(Rutas.SPLASH) {
             SplashScreen()
 
             LaunchedEffect(Unit) {
-                // Le damos un momento a Supabase para restaurar la sesión
-                delay(800)
-
+                // awaitInitialization espera a que Supabase termine de
+                // restaurar la sesión del almacenamiento local.
+                // Es como hacer: await supabase.auth.initialize() en JS
+                // Sin esto, currentSessionOrNull() devuelve null porque
+                // todavía no terminó de leer el token guardado.
                 val sesionActiva = try {
+                    SupabaseClient.instance.auth.awaitInitialization()
                     SupabaseClient.instance.auth.currentSessionOrNull() != null
                 } catch (e: Exception) {
                     false
                 }
+
+                // Delay mínimo para que se vea el splash (UX)
+                delay(500)
 
                 val destino = if (sesionActiva) Rutas.MAIN else Rutas.AUTH
 
@@ -77,7 +83,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // ── ONBOARDING — se mantiene por si lo necesitás ──
+        // ── ONBOARDING ──
         composable(Rutas.ONBOARDING) {
             OnboardingScreen(
                 onNombreGuardado = {
@@ -88,7 +94,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // ── MAIN — home con bottom nav ──
+        // ── MAIN ──
         composable(Rutas.MAIN) {
             MainScreen(
                 onCerrarSesion = {
@@ -101,9 +107,6 @@ fun NavGraph(navController: NavHostController) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════
-// SPLASH SCREEN — logo + loading mientras verifica sesión
-// ═══════════════════════════════════════════════════════════
 @Composable
 private fun SplashScreen() {
     Box(
