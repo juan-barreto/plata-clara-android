@@ -6,12 +6,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.candlelabs.gestionpersonal.model.HistorialItem
 import com.candlelabs.gestionpersonal.network.RetrofitClient
+import com.candlelabs.gestionpersonal.network.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-// Resumen de una categoría para el home
 data class CategoriaResumen(
     val nombre: String,
     val gastado: Double,
@@ -47,7 +48,6 @@ class HomeViewModel(private val context: Context) : ViewModel() {
     private val _balanceVisible = MutableStateFlow(true)
     val balanceVisible: StateFlow<Boolean> = _balanceVisible
 
-    // Para el pull-to-refresh — indica si está recargando
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
@@ -57,8 +57,6 @@ class HomeViewModel(private val context: Context) : ViewModel() {
         _balanceVisible.value = !_balanceVisible.value
     }
 
-    // Función pública para pull-to-refresh
-    // No muestra el loading de pantalla completa, solo el indicador del pull
     fun recargar() {
         viewModelScope.launch {
             _isRefreshing.value = true
@@ -73,20 +71,32 @@ class HomeViewModel(private val context: Context) : ViewModel() {
         }
     }
 
+    // Obtiene el nombre del usuario desde Supabase Auth metadata
+    // Google lo guarda como "full_name", email registro lo guarda igual
+    // Si no hay nombre, usa el email, si no hay nada usa "Usuario"
+    private fun obtenerNombreUsuario(): String {
+        return try {
+            val user = SupabaseClient.instance.auth.currentUserOrNull()
+            val fullName = user?.userMetadata?.get("full_name")?.toString()?.replace("\"", "")
+            when {
+                !fullName.isNullOrBlank() -> fullName.split(" ").first() // solo primer nombre
+                user?.email != null -> user.email!!.substringBefore("@") // "juan" de "juan@mail.com"
+                else -> "Usuario"
+            }
+        } catch (e: Exception) {
+            // Fallback a SharedPreferences por si no hay sesión
+            val prefs = context.getSharedPreferences("gestion_prefs", Context.MODE_PRIVATE)
+            prefs.getString("nombre_usuario", "Usuario") ?: "Usuario"
+        }
+    }
+
     private suspend fun cargarDatosInterno(mostrarLoading: Boolean) {
         if (mostrarLoading) {
             _uiState.value = HomeUiState.Cargando
         }
         try {
-            val prefs = context.getSharedPreferences("gestion_prefs", Context.MODE_PRIVATE)
-            val nombre = prefs.getString("nombre_usuario", "Usuario") ?: "Usuario"
+            val nombre = obtenerNombreUsuario()
 
-            // ═══════════════════════════════════════════════════════
-            // LLAMADAS EN PARALELO — async lanza cada una al mismo
-            // tiempo. awaitAll espera a que terminen todas.
-            // Equivalente en Python:
-            //   results = await asyncio.gather(get_ipc(), get_historial(), get_presupuesto())
-            // ═══════════════════════════════════════════════════════
             val ipcDeferred = viewModelScope.async {
                 try { RetrofitClient.instance.getIpc() } catch (e: Exception) { emptyList() }
             }
@@ -97,16 +107,11 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 try { RetrofitClient.instance.getPresupuesto("mensual") } catch (e: Exception) { emptyList() }
             }
 
-            // Las 3 llamadas ya están en vuelo — ahora esperamos resultados
             val ipcDatos = ipcDeferred.await()
             val historial = historialDeferred.await()
             val movimientos = presupuestoDeferred.await()
 
-            // ═══════════════════════════════════════════════════════
-            // PROCESAMIENTO — todo esto es local, no tarda nada
-            // ═══════════════════════════════════════════════════════
-
-            // IPC con valor anterior
+            // IPC
             var ipcUltimo: String? = null
             var ipcAnterior: String? = null
             if (ipcDatos.size >= 2) {
@@ -164,7 +169,6 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 )
             }
 
-            // Consejo del día
             val consejos = listOf(
                 "Guardá al menos el 10% de tus ingresos cada mes.",
                 "El dólar blue no es el único refugio — los plazos fijos UVA también ajustan por inflación.",

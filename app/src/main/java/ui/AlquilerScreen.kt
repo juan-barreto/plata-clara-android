@@ -1,43 +1,29 @@
 package com.candlelabs.gestionpersonal.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.candlelabs.gestionpersonal.ui.theme.*
 
 @Composable
 fun AlquilerScreen(navController: NavController) {
@@ -52,191 +38,258 @@ fun AlquilerScreen(navController: NavController) {
     var periodoSeleccionado by remember { mutableIntStateOf(3) }
 
     val indices = listOf("ipc", "icl")
+    val periodos = listOf(3 to "Trimestral", 4 to "Cuatrimestral", 6 to "Semestral", 12 to "Anual")
 
-    // Períodos disponibles — número de meses y etiqueta para mostrar
-    val periodos = listOf(
-        3 to "Trimestral",
-        4 to "Cuatrimestral",
-        6 to "Semestral",
-        12 to "Anual"
-    )
-
-    // El formulario necesita scroll porque tiene muchos campos
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(FondoNegro)
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-
-        // Título con botón de info
+        // ══════════════════════════════════════════════
+        // HEADER
+        // ══════════════════════════════════════════════
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Calculadora de alquiler",
-                style = MaterialTheme.typography.titleLarge
-            )
-            IconButton(onClick = { navController.navigate(Rutas.INFO) }) {
-                Icon(
-                    Icons.Filled.Info,
-                    contentDescription = "¿Cómo funciona?",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-
-        // Campo monto con prefijo $
-        OutlinedTextField(
-            value = alquiler,
-            onValueChange = { alquiler = it },
-            label = { Text("Monto actual del alquiler") },
-            prefix = { Text("$") }, // prefijo visible dentro del campo
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // Campo fecha de inicio con formato automático YYYY-MM-DD
-        OutlinedTextField(
-            value = fechaInicio,
-            onValueChange = { input ->
-                // Solo guardamos números, máximo 8 dígitos
-                val soloNumeros = input.filter { it.isDigit() }.take(8)
-                fechaInicio = soloNumeros
-            },
-            label = { Text("Fecha de último aumento") },
-            placeholder = { Text("AAAA-MM-DD") },
-            visualTransformation = FechaVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // Campo fecha de firma con el mismo formato automático
-        OutlinedTextField(
-            value = fechaFirma,
-            onValueChange = { input ->
-                val soloNumeros = input.filter { it.isDigit() }.take(8)
-                fechaFirma = soloNumeros
-            },
-            label = { Text("Fecha de firma del contrato") },
-            placeholder = { Text("AAAA-MM-DD") },
-            visualTransformation = FechaVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
-        )
-        // Selector de índice
-        Text(text = "Índice de ajuste", style = MaterialTheme.typography.labelMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            indices.forEach { indice ->
-                FilterChip(
-                    selected = indiceSeleccionado == indice,
-                    onClick = { indiceSeleccionado = indice },
-                    label = { Text(indice.uppercase()) }
-                )
-            }
-        }
-
-        // Mensaje aclaratorio cuando el usuario selecciona ICL
-        if (indiceSeleccionado == "icl") {
-            Text(
-                text = "El ICL es obligatorio para contratos firmados antes del 17/10/2023. " +
-                        "Para contratos más nuevos, las partes lo acuerdan libremente.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        // Selector de período
-        Text(text = "Período de ajuste", style = MaterialTheme.typography.labelMedium)
-        // Primera fila — Trimestral y Cuatrimestral
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            periodos.take(2).forEach { (meses, etiqueta) ->
-                FilterChip(
-                    selected = periodoSeleccionado == meses,
-                    onClick = { periodoSeleccionado = meses },
-                    label = { Text(etiqueta) }
-                )
-            }
-        }
-// Segunda fila — Semestral y Anual
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            periodos.drop(2).forEach { (meses, etiqueta) ->
-                FilterChip(
-                    selected = periodoSeleccionado == meses,
-                    onClick = { periodoSeleccionado = meses },
-                    label = { Text(etiqueta) }
-                )
-            }
-        }
-
-        // Botón calcular
-        Button(
-            onClick = {
-                val monto = alquiler.toDoubleOrNull()
-                if (monto != null && fechaInicio.length == 8 && fechaFirma.length == 8) {
-                    // Convertimos "20240615" → "2024-06-15" antes de mandar
-                    val fechaInicioFormateada = "${fechaInicio.substring(0,4)}-${fechaInicio.substring(4,6)}-${fechaInicio.substring(6)}"
-                    val fechaFirmaFormateada = "${fechaFirma.substring(0,4)}-${fechaFirma.substring(4,6)}-${fechaFirma.substring(6)}"
-                    viewModel.calcular(monto, fechaInicioFormateada, fechaFirmaFormateada, indiceSeleccionado, periodoSeleccionado)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon(Icons.Rounded.Apartment, null, tint = VerdePrimario, modifier = Modifier.size(28.dp))
+                Column {
+                    Text("Calculadora", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextoPrimario)
+                    Text("de alquiler", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
                 }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Calcular ajuste")
+            }
+            IconButton(onClick = { navController.navigate(Rutas.INFO) }) {
+                Icon(Icons.Rounded.Info, "Info", tint = VerdePrimario, modifier = Modifier.size(24.dp))
+            }
         }
 
-        // Resultado
-        when (uiState) {
-            is AlquilerUiState.Idle -> {}
+        // ══════════════════════════════════════════════
+        // BLOQUE CREMA
+        // ══════════════════════════════════════════════
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .background(FondoPrincipal, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .padding(horizontal = 14.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
 
-            is AlquilerUiState.Cargando -> {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            // ── FORMULARIO ──
+            Card(
+                Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = FondoCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
+            ) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
+                    // Monto
+                    OutlinedTextField(
+                        value = alquiler, onValueChange = { alquiler = it },
+                        label = { Text("Monto actual del alquiler", color = TextoSecundario) },
+                        prefix = { Text("$", color = VerdePrimario, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Rounded.AttachMoney, null, tint = TextoSecundario) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = TextoPrimario, unfocusedTextColor = TextoPrimario,
+                            focusedBorderColor = VerdePrimario, unfocusedBorderColor = Divisor, cursorColor = VerdePrimario
+                        ),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth(), singleLine = true
+                    )
+
+                    // Fecha último aumento
+                    OutlinedTextField(
+                        value = fechaInicio,
+                        onValueChange = { fechaInicio = it.filter { c -> c.isDigit() }.take(8) },
+                        label = { Text("Fecha de último aumento", color = TextoSecundario) },
+                        placeholder = { Text("AAAA-MM-DD", color = TextoMuted) },
+                        leadingIcon = { Icon(Icons.Rounded.CalendarMonth, null, tint = TextoSecundario) },
+                        visualTransformation = FechaVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = TextoPrimario, unfocusedTextColor = TextoPrimario,
+                            focusedBorderColor = VerdePrimario, unfocusedBorderColor = Divisor, cursorColor = VerdePrimario
+                        ),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth(), singleLine = true
+                    )
+
+                    // Fecha firma
+                    OutlinedTextField(
+                        value = fechaFirma,
+                        onValueChange = { fechaFirma = it.filter { c -> c.isDigit() }.take(8) },
+                        label = { Text("Fecha de firma del contrato", color = TextoSecundario) },
+                        placeholder = { Text("AAAA-MM-DD", color = TextoMuted) },
+                        leadingIcon = { Icon(Icons.Rounded.EditCalendar, null, tint = TextoSecundario) },
+                        visualTransformation = FechaVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = TextoPrimario, unfocusedTextColor = TextoPrimario,
+                            focusedBorderColor = VerdePrimario, unfocusedBorderColor = Divisor, cursorColor = VerdePrimario
+                        ),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth(), singleLine = true
+                    )
+                }
             }
 
-            is AlquilerUiState.Exito -> {
-                val historial = (uiState as AlquilerUiState.Exito).respuesta.historial
+            // ── ÍNDICE ──
+            Card(
+                Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = FondoCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
+            ) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("ÍNDICE DE AJUSTE", style = MaterialTheme.typography.labelSmall, color = TextoSecundario, letterSpacing = 1.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        indices.forEach { indice ->
+                            FilterChip(
+                                selected = indiceSeleccionado == indice,
+                                onClick = { indiceSeleccionado = indice },
+                                label = { Text(indice.uppercase(), fontWeight = FontWeight.Bold) },
+                                leadingIcon = {
+                                    Icon(
+                                        if (indice == "ipc") Icons.Rounded.TrendingUp else Icons.Rounded.BarChart,
+                                        null, modifier = Modifier.size(16.dp)
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = VerdePrimario, selectedLabelColor = FondoNegro,
+                                    selectedLeadingIconColor = FondoNegro
+                                )
+                            )
+                        }
+                    }
+                    if (indiceSeleccionado == "icl") {
+                        Text(
+                            "El ICL es obligatorio para contratos firmados antes del 17/10/2023. Para contratos más nuevos, las partes lo acuerdan libremente.",
+                            style = MaterialTheme.typography.bodySmall, color = VerdePrimario, lineHeight = 18.sp
+                        )
+                    }
+                }
+            }
 
-                Text(
-                    text = "Resultado:",
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                // LazyColumn dentro de Column con scroll necesita altura fija
-                // por eso usamos forEach en vez de LazyColumn acá
-                historial.forEach { periodo ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(text = periodo.periodo)
-                            Text(text = "$${String.format("%.2f", periodo.alquiler)}")
+            // ── PERÍODO ──
+            Card(
+                Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = FondoCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
+            ) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("PERÍODO DE AJUSTE", style = MaterialTheme.typography.labelSmall, color = TextoSecundario, letterSpacing = 1.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        periodos.take(2).forEach { (meses, etiqueta) ->
+                            FilterChip(
+                                selected = periodoSeleccionado == meses,
+                                onClick = { periodoSeleccionado = meses },
+                                label = { Text(etiqueta) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = VerdePrimario, selectedLabelColor = FondoNegro
+                                )
+                            )
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        periodos.drop(2).forEach { (meses, etiqueta) ->
+                            FilterChip(
+                                selected = periodoSeleccionado == meses,
+                                onClick = { periodoSeleccionado = meses },
+                                label = { Text(etiqueta) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = VerdePrimario, selectedLabelColor = FondoNegro
+                                )
+                            )
                         }
                     }
                 }
             }
 
-            is AlquilerUiState.Error -> {
-                val mensaje = (uiState as AlquilerUiState.Error).mensaje
-                Text(
-                    text = "Error: $mensaje",
-                    color = MaterialTheme.colorScheme.error
-                )
+            // ── BOTÓN CALCULAR ──
+            Button(
+                onClick = {
+                    val monto = alquiler.toDoubleOrNull()
+                    if (monto != null && fechaInicio.length == 8 && fechaFirma.length == 8) {
+                        val fi = "${fechaInicio.substring(0,4)}-${fechaInicio.substring(4,6)}-${fechaInicio.substring(6)}"
+                        val ff = "${fechaFirma.substring(0,4)}-${fechaFirma.substring(4,6)}-${fechaFirma.substring(6)}"
+                        viewModel.calcular(monto, fi, ff, indiceSeleccionado, periodoSeleccionado)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario, contentColor = FondoNegro)
+            ) {
+                Icon(Icons.Rounded.Calculate, null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Calcular ajuste", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
+
+            // ── RESULTADO ──
+            when (uiState) {
+                is AlquilerUiState.Idle -> {}
+                is AlquilerUiState.Cargando -> {
+                    Box(Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = VerdePrimario)
+                    }
+                }
+                is AlquilerUiState.Exito -> {
+                    val historial = (uiState as AlquilerUiState.Exito).respuesta.historial
+
+                    Text("RESULTADO", style = MaterialTheme.typography.labelSmall, color = TextoSobreCreme, letterSpacing = 1.sp, fontWeight = FontWeight.Bold)
+
+                    historial.forEach { periodo ->
+                        Card(
+                            Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(14.dp), ambientColor = SombraCard, spotColor = SombraCard),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = FondoCard),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
+                        ) {
+                            Row(
+                                Modifier.fillMaxWidth().padding(14.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Rounded.DateRange, null, tint = VerdePrimario, modifier = Modifier.size(18.dp))
+                                    Text(periodo.periodo, style = MaterialTheme.typography.bodyMedium, color = TextoPrimario)
+                                }
+                                Text(
+                                    "$${String.format("%,.0f", periodo.alquiler).replace(",", ".")}",
+                                    style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = VerdePrimario
+                                )
+                            }
+                        }
+                    }
+                }
+                is AlquilerUiState.Error -> {
+                    val msg = (uiState as AlquilerUiState.Error).mensaje
+                    Card(
+                        Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = RojoGasto.copy(alpha = 0.1f))
+                    ) {
+                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Rounded.ErrorOutline, null, tint = RojoGasto, modifier = Modifier.size(18.dp))
+                            Text(msg, style = MaterialTheme.typography.bodySmall, color = RojoGasto)
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(80.dp))
         }
     }
 }
-// Transforma visualmente "20240601" → "2024-06-01" sin mover el cursor
+
+// Transforma visualmente "20240601" → "2024-06-01"
 class FechaVisualTransformation : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val digits = text.text
@@ -247,21 +300,11 @@ class FechaVisualTransformation : VisualTransformation {
             }
         }
         val offsetMap = object : OffsetMapping {
-            override fun originalToTransformed(offset: Int): Int {
-                return when {
-                    offset <= 3 -> offset
-                    offset <= 5 -> offset + 1
-                    offset <= 8 -> offset + 2
-                    else -> result.length
-                }
+            override fun originalToTransformed(offset: Int): Int = when {
+                offset <= 3 -> offset; offset <= 5 -> offset + 1; offset <= 8 -> offset + 2; else -> result.length
             }
-            override fun transformedToOriginal(offset: Int): Int {
-                return when {
-                    offset <= 4 -> offset
-                    offset <= 7 -> offset - 1
-                    offset <= 10 -> offset - 2
-                    else -> digits.length
-                }
+            override fun transformedToOriginal(offset: Int): Int = when {
+                offset <= 4 -> offset; offset <= 7 -> offset - 1; offset <= 10 -> offset - 2; else -> digits.length
             }
         }
         return TransformedText(AnnotatedString(result), offsetMap)

@@ -1,180 +1,198 @@
 package com.candlelabs.gestionpersonal.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.candlelabs.gestionpersonal.ui.theme.*
 
 @Composable
 fun InfoScreen() {
 
-    // verticalScroll permite scrollear el contenido si es más largo que la pantalla
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(FondoNegro)
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // ══════════════════════════════════════════════
+        // HEADER
+        // ══════════════════════════════════════════════
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon(Icons.Rounded.MenuBook, null, tint = VerdePrimario, modifier = Modifier.size(28.dp))
+                Column {
+                    Text("Guía de alquileres", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextoPrimario)
+                    Text("Cómo funciona el ajuste en Argentina", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                }
+            }
+        }
 
-        Text(
-            text = "¿Cómo funciona?",
-            style = MaterialTheme.typography.headlineMedium
-        )
+        // ══════════════════════════════════════════════
+        // BLOQUE CREMA
+        // ══════════════════════════════════════════════
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .background(FondoPrincipal, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .padding(horizontal = 14.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
 
-        Text(
-            text = "Guía para entender el ajuste de alquileres en Argentina según la ley vigente.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-        // Sección 1
-        InfoCard(
-            titulo = "Contratos firmados antes del 17/10/2023",
-            subtitulo = "Ley 27.551 — Ley de Alquileres original",
-            contenido = "Se ajustan una vez por año usando el ICL (Índice de Contratos de Locación). " +
-                    "El ICL combina 50% IPC (inflación) y 50% RIPTE (salarios). " +
-                    "Estos contratos se extinguen progresivamente — la mayoría habrá vencido para fines de 2026.",
-            color = InfoCardColor.AZUL
-        )
-
-        // Sección 2
-        InfoCard(
-            titulo = "Contratos firmados entre Oct y Dic 2023",
-            subtitulo = "Período de transición",
-            contenido = "Se ajustan cada 6 meses por ICL. " +
-                    "Corresponden al período entre la derogación de la ley anterior y la entrada en vigor del DNU 70/2023.",
-            color = InfoCardColor.NARANJA
-        )
-
-        // Sección 3
-        InfoCard(
-            titulo = "Contratos firmados desde el 29/12/2023",
-            subtitulo = "DNU 70/2023 — Marco vigente",
-            contenido = "Las partes acuerdan libremente el índice (IPC, ICL u otro) y el período de ajuste " +
-                    "(trimestral, cuatrimestral, semestral o anual). " +
-                    "En la práctica, más del 70% de los contratos nuevos pactan ajuste trimestral o cuatrimestral por IPC.",
-            color = InfoCardColor.VERDE
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-        // Índices explicados
-        Text(
-            text = "Los índices",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        IndiceRow(
-            nombre = "IPC",
-            descripcion = "Índice de Precios al Consumidor — mide la inflación general. Lo publica el INDEC con un mes de delay."
-        )
-        IndiceRow(
-            nombre = "ICL",
-            descripcion = "Índice de Contratos de Locación — combina 50% IPC y 50% RIPTE (salarios). Lo publica el BCRA."
-        )
-        IndiceRow(
-            nombre = "RIPTE",
-            descripcion = "Remuneración Imponible Promedio de Trabajadores Estables — refleja la evolución de los salarios formales."
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-        Text(
-            text = "Sobre el delay de publicación",
-            style = MaterialTheme.typography.titleMedium
-        )
-        Text(
-            text = "El INDEC publica el IPC del mes anterior con algunas semanas de demora. " +
-                    "Por ejemplo, el IPC de marzo se conoce en abril. " +
-                    "Esta app siempre usa el último índice disponible al momento del cálculo.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-// Colores posibles para las cards
-enum class InfoCardColor { AZUL, NARANJA, VERDE }
-
-@Composable
-fun InfoCard(
-    titulo: String,
-    subtitulo: String,
-    contenido: String,
-    color: InfoCardColor
-) {
-    val colorContenedor = when (color) {
-        InfoCardColor.AZUL -> MaterialTheme.colorScheme.primaryContainer
-        InfoCardColor.NARANJA -> MaterialTheme.colorScheme.tertiaryContainer
-        InfoCardColor.VERDE -> MaterialTheme.colorScheme.secondaryContainer
-    }
-    val colorTexto = when (color) {
-        InfoCardColor.AZUL -> MaterialTheme.colorScheme.onPrimaryContainer
-        InfoCardColor.NARANJA -> MaterialTheme.colorScheme.onTertiaryContainer
-        InfoCardColor.VERDE -> MaterialTheme.colorScheme.onSecondaryContainer
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = colorContenedor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(
-                text = titulo,
-                style = MaterialTheme.typography.titleSmall,
-                color = colorTexto
+            // ── SECCIÓN 1: Antes Oct 2023 ──
+            InfoCardPlataClara(
+                icono = Icons.Rounded.History,
+                titulo = "Antes del 17/10/2023",
+                subtitulo = "Ley 27.551 — Ley de Alquileres original",
+                contenido = "Se ajustan una vez por año usando el ICL (Índice de Contratos de Locación). El ICL combina 50% IPC (inflación) y 50% RIPTE (salarios). Estos contratos se extinguen progresivamente — la mayoría habrá vencido para fines de 2026.",
+                accentColor = Color(0xFF4E9AFF)
             )
-            Text(
-                text = subtitulo,
-                style = MaterialTheme.typography.labelSmall,
-                color = colorTexto.copy(alpha = 0.7f),
-                modifier = Modifier.padding(bottom = 6.dp)
+
+            // ── SECCIÓN 2: Transición ──
+            InfoCardPlataClara(
+                icono = Icons.Rounded.SwapHoriz,
+                titulo = "Oct — Dic 2023",
+                subtitulo = "Período de transición",
+                contenido = "Se ajustan cada 6 meses por ICL. Corresponden al período entre la derogación de la ley anterior y la entrada en vigor del DNU 70/2023.",
+                accentColor = Naranja
             )
-            Text(
-                text = contenido,
-                style = MaterialTheme.typography.bodySmall,
-                color = colorTexto
+
+            // ── SECCIÓN 3: DNU vigente ──
+            InfoCardPlataClara(
+                icono = Icons.Rounded.Gavel,
+                titulo = "Desde el 29/12/2023",
+                subtitulo = "DNU 70/2023 — Marco vigente",
+                contenido = "Las partes acuerdan libremente el índice (IPC, ICL u otro) y el período de ajuste (trimestral, cuatrimestral, semestral o anual). En la práctica, más del 70% de los contratos nuevos pactan ajuste trimestral o cuatrimestral por IPC.",
+                accentColor = VerdePrimario
             )
+
+            // ── LOS ÍNDICES ──
+            Text("LOS ÍNDICES", style = MaterialTheme.typography.labelSmall, color = TextoSobreCreme, letterSpacing = 1.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+
+            IndiceCardPlataClara(
+                sigla = "IPC",
+                nombre = "Índice de Precios al Consumidor",
+                descripcion = "Mide la inflación general. Lo publica el INDEC con un mes de delay."
+            )
+            IndiceCardPlataClara(
+                sigla = "ICL",
+                nombre = "Índice de Contratos de Locación",
+                descripcion = "Combina 50% IPC y 50% RIPTE (salarios). Lo publica el BCRA."
+            )
+            IndiceCardPlataClara(
+                sigla = "RIPTE",
+                nombre = "Remuneración Imponible Promedio",
+                descripcion = "Refleja la evolución de los salarios formales registrados."
+            )
+
+            // ── DELAY ──
+            Card(
+                Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(14.dp), ambientColor = SombraCard, spotColor = SombraCard),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = FondoCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
+            ) {
+                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Icon(Icons.Rounded.Schedule, null, tint = Naranja, modifier = Modifier.size(20.dp))
+                    Column {
+                        Text("Sobre el delay de publicación", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = TextoPrimario)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "El INDEC publica el IPC del mes anterior con algunas semanas de demora. Por ejemplo, el IPC de marzo se conoce en abril. Esta app siempre usa el último índice disponible al momento del cálculo.",
+                            style = MaterialTheme.typography.bodySmall, color = TextoMuted, lineHeight = 18.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(80.dp))
         }
     }
 }
 
+// ═══════════════════════════════════════════════════════════
+// INFO CARD — estilo Plata Clara
+// ═══════════════════════════════════════════════════════════
 @Composable
-fun IndiceRow(nombre: String, descripcion: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+private fun InfoCardPlataClara(
+    icono: ImageVector,
+    titulo: String,
+    subtitulo: String,
+    contenido: String,
+    accentColor: Color
+) {
+    Card(
+        Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = FondoCard),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
     ) {
-        Text(
-            text = nombre,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(top = 2.dp)
-        )
-        Text(
-            text = descripcion,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f)
-        )
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = accentColor.copy(alpha = 0.15f),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(icono, null, tint = accentColor, modifier = Modifier.size(20.dp))
+                    }
+                }
+                Column {
+                    Text(titulo, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = TextoPrimario)
+                    Text(subtitulo, style = MaterialTheme.typography.labelSmall, color = accentColor)
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(contenido, style = MaterialTheme.typography.bodySmall, color = TextoMuted, lineHeight = 18.sp)
+        }
     }
 }
 
+// ═══════════════════════════════════════════════════════════
+// ÍNDICE CARD — sigla destacada
+// ═══════════════════════════════════════════════════════════
+@Composable
+private fun IndiceCardPlataClara(sigla: String, nombre: String, descripcion: String) {
+    Card(
+        Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(14.dp), ambientColor = SombraCard, spotColor = SombraCard),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = FondoCard),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
+    ) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = VerdePrimario.copy(alpha = 0.15f),
+                modifier = Modifier.width(52.dp).height(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(sigla, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = VerdePrimario)
+                }
+            }
+            Column(Modifier.weight(1f)) {
+                Text(nombre, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = TextoPrimario)
+                Spacer(Modifier.height(2.dp))
+                Text(descripcion, style = MaterialTheme.typography.bodySmall, color = TextoMuted, lineHeight = 18.sp)
+            }
+        }
+    }
+}

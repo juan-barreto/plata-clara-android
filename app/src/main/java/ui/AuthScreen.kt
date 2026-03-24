@@ -4,16 +4,16 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -21,7 +21,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,20 +35,18 @@ fun AuthScreen(
     val viewModel: AuthViewModel = viewModel(factory = AuthViewModel.factory(context))
     val uiState by viewModel.uiState.collectAsState()
 
-    // Si ya tiene sesión, va directo al home
     LaunchedEffect(Unit) {
         viewModel.verificarSesion()
     }
 
-    // Si el login fue exitoso, navegamos
     LaunchedEffect(uiState) {
         if (uiState is AuthUiState.Exito) {
             onAuthExitoso()
         }
     }
 
-    // Toggle entre login y registro
     var esRegistro by remember { mutableStateOf(false) }
+    var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var mostrarPassword by remember { mutableStateOf(false) }
@@ -62,6 +59,7 @@ fun AuthScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 32.dp)
                 .padding(top = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -76,18 +74,32 @@ fun AuthScreen(
                 contentScale = ContentScale.Fit
             )
 
-
-            // Título
-
             Text(
                 "Tu amiga en la crisis financiera",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextoSecundario,
-                modifier = Modifier.offset(y = -45.dp),
+                modifier = Modifier.offset(y = (-45).dp),
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            // ── NOMBRE (solo en registro) ──
+            if (esRegistro) {
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    label = { Text("Nombre", color = TextoSecundario) },
+                    leadingIcon = { Icon(Icons.Rounded.Person, null, tint = TextoSecundario) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = TextoPrimario, unfocusedTextColor = TextoPrimario,
+                        focusedBorderColor = VerdePrimario, unfocusedBorderColor = Divisor, cursorColor = VerdePrimario
+                    ),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
                 )
-
-
-            Spacer(Modifier.height(40.dp))
+                Spacer(Modifier.height(12.dp))
+            }
 
             // ── EMAIL ──
             OutlinedTextField(
@@ -98,11 +110,8 @@ fun AuthScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = TextoPrimario,
-                    unfocusedTextColor = TextoPrimario,
-                    focusedBorderColor = VerdePrimario,
-                    unfocusedBorderColor = Divisor,
-                    cursorColor = VerdePrimario
+                    focusedTextColor = TextoPrimario, unfocusedTextColor = TextoPrimario,
+                    focusedBorderColor = VerdePrimario, unfocusedBorderColor = Divisor, cursorColor = VerdePrimario
                 ),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -128,27 +137,27 @@ fun AuthScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = TextoPrimario,
-                    unfocusedTextColor = TextoPrimario,
-                    focusedBorderColor = VerdePrimario,
-                    unfocusedBorderColor = Divisor,
-                    cursorColor = VerdePrimario
+                    focusedTextColor = TextoPrimario, unfocusedTextColor = TextoPrimario,
+                    focusedBorderColor = VerdePrimario, unfocusedBorderColor = Divisor, cursorColor = VerdePrimario
                 ),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
+            Spacer(Modifier.height(20.dp))
 
             // ── BOTÓN PRINCIPAL ──
             Button(
                 onClick = {
-                    if (esRegistro) viewModel.registrarConEmail(email, password)
+                    if (esRegistro) viewModel.registrarConEmail(email, password, nombre)
                     else viewModel.loginConEmail(email, password)
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario, contentColor = FondoNegro),
-                enabled = email.isNotBlank() && password.length >= 6 && uiState !is AuthUiState.Cargando
+                enabled = email.isNotBlank() && password.length >= 6
+                        && (!esRegistro || nombre.isNotBlank())
+                        && uiState !is AuthUiState.Cargando
             ) {
                 if (uiState is AuthUiState.Cargando) {
                     CircularProgressIndicator(color = FondoNegro, modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
@@ -164,10 +173,7 @@ fun AuthScreen(
             Spacer(Modifier.height(16.dp))
 
             // ── DIVISOR ──
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 HorizontalDivider(Modifier.weight(1f), color = Divisor)
                 Text("  o  ", color = TextoMuted, style = MaterialTheme.typography.bodySmall)
                 HorizontalDivider(Modifier.weight(1f), color = Divisor)
@@ -238,6 +244,8 @@ fun AuthScreen(
                     }
                 }
             }
+
+            Spacer(Modifier.height(32.dp))
         }
     }
 }

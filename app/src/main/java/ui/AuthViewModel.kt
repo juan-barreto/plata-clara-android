@@ -16,12 +16,13 @@ import io.github.jan.supabase.auth.providers.builtin.IDToken
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
-// Estados posibles de la pantalla de auth
 sealed class AuthUiState {
-    object Idle : AuthUiState()           // esperando acción del usuario
-    object Cargando : AuthUiState()       // procesando login/registro
-    object Exito : AuthUiState()          // login exitoso → navegar al home
+    object Idle : AuthUiState()
+    object Cargando : AuthUiState()
+    object Exito : AuthUiState()
     data class Error(val mensaje: String) : AuthUiState()
 }
 
@@ -33,16 +34,19 @@ class AuthViewModel(private val context: Context) : ViewModel() {
     private val supabase = SupabaseClient.instance
 
     // ═══════════════════════════════════════════════════════
-    // REGISTRO CON EMAIL + CONTRASEÑA
-    // Equivalente en Python: supabase.auth.sign_up({"email": email, "password": password})
+    // REGISTRO CON EMAIL + CONTRASEÑA + NOMBRE
+    // Guarda el nombre en user_metadata de Supabase
     // ═══════════════════════════════════════════════════════
-    fun registrarConEmail(email: String, password: String) {
+    fun registrarConEmail(email: String, password: String, nombre: String) {
         viewModelScope.launch {
             _uiState.value = AuthUiState.Cargando
             try {
                 supabase.auth.signUpWith(Email) {
                     this.email = email
                     this.password = password
+                    this.data = buildJsonObject {
+                        put("full_name", nombre)
+                    }
                 }
                 _uiState.value = AuthUiState.Exito
             } catch (e: Exception) {
@@ -60,7 +64,6 @@ class AuthViewModel(private val context: Context) : ViewModel() {
 
     // ═══════════════════════════════════════════════════════
     // LOGIN CON EMAIL + CONTRASEÑA
-    // Equivalente en Python: supabase.auth.sign_in_with_password({"email": email, "password": password})
     // ═══════════════════════════════════════════════════════
     fun loginConEmail(email: String, password: String) {
         viewModelScope.launch {
@@ -85,32 +88,24 @@ class AuthViewModel(private val context: Context) : ViewModel() {
 
     // ═══════════════════════════════════════════════════════
     // LOGIN CON GOOGLE
-    // Usa CredentialManager (Android moderno) → obtiene el
-    // ID Token de Google → se lo pasa a Supabase
     // ═══════════════════════════════════════════════════════
     fun loginConGoogle() {
         viewModelScope.launch {
             _uiState.value = AuthUiState.Cargando
             try {
-                // 1. Configuramos la solicitud de Google ID
-                // Este es el Client ID del cliente WEB (no el de Android)
                 val googleIdOption = GetGoogleIdOption.Builder()
                     .setServerClientId("195862119946-a3qlfmg7igilcmq6193ggo3ajpqeb1op.apps.googleusercontent.com")
-                    .setFilterByAuthorizedAccounts(false) // muestra todas las cuentas, no solo las autorizadas
+                    .setFilterByAuthorizedAccounts(false)
                     .build()
 
                 val request = GetCredentialRequest.Builder()
                     .addCredentialOption(googleIdOption)
                     .build()
 
-                // 2. Lanzamos el selector de cuentas de Google
                 val credentialManager = CredentialManager.create(context)
                 val result = credentialManager.getCredential(context, request)
-
-                // 3. Extraemos el token de Google
                 val googleIdToken = GoogleIdTokenCredential.createFrom(result.credential.data)
 
-                // 4. Le pasamos el token a Supabase para que cree/loguee al usuario
                 supabase.auth.signInWith(IDToken) {
                     idToken = googleIdToken.idToken
                     provider = Google
@@ -130,9 +125,6 @@ class AuthViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // CERRAR SESIÓN
-    // ═══════════════════════════════════════════════════════
     fun cerrarSesion() {
         viewModelScope.launch {
             try {
@@ -144,24 +136,21 @@ class AuthViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // VERIFICAR SI YA ESTÁ LOGUEADO
-    // Se llama al abrir la app — si tiene sesión activa, va directo al home
-    // ═══════════════════════════════════════════════════════
     fun verificarSesion() {
         viewModelScope.launch {
             try {
+                // Esperamos a que Supabase restaure la sesión guardada
+                supabase.auth.awaitInitialization()
                 val session = supabase.auth.currentSessionOrNull()
                 if (session != null) {
                     _uiState.value = AuthUiState.Exito
                 }
             } catch (_: Exception) {
-                // No hay sesión, se queda en Idle
+                // No hay sesión guardada
             }
         }
     }
 
-    // Resetear estado (para limpiar errores)
     fun resetEstado() {
         _uiState.value = AuthUiState.Idle
     }
