@@ -44,16 +44,10 @@ fun NavGraph(navController: NavHostController) {
         navController = navController,
         startDestination = Rutas.SPLASH
     ) {
-        // ── SPLASH — espera a que Supabase restaure la sesión ──
         composable(Rutas.SPLASH) {
             SplashScreen()
 
             LaunchedEffect(Unit) {
-                // awaitInitialization espera a que Supabase termine de
-                // restaurar la sesión del almacenamiento local.
-                // Es como hacer: await supabase.auth.initialize() en JS
-                // Sin esto, currentSessionOrNull() devuelve null porque
-                // todavía no terminó de leer el token guardado.
                 val sesionActiva = try {
                     SupabaseClient.instance.auth.awaitInitialization()
                     SupabaseClient.instance.auth.currentSessionOrNull() != null
@@ -61,7 +55,6 @@ fun NavGraph(navController: NavHostController) {
                     false
                 }
 
-                // Delay mínimo para que se vea el splash (UX)
                 delay(500)
 
                 val destino = if (sesionActiva) Rutas.MAIN else Rutas.AUTH
@@ -72,7 +65,6 @@ fun NavGraph(navController: NavHostController) {
             }
         }
 
-        // ── AUTH — login/registro ──
         composable(Rutas.AUTH) {
             AuthScreen(
                 onAuthExitoso = {
@@ -83,7 +75,6 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // ── ONBOARDING ──
         composable(Rutas.ONBOARDING) {
             OnboardingScreen(
                 onNombreGuardado = {
@@ -94,7 +85,6 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // ── MAIN ──
         composable(Rutas.MAIN) {
             MainScreen(
                 onCerrarSesion = {

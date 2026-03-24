@@ -53,9 +53,7 @@ class HomeViewModel(private val context: Context) : ViewModel() {
 
     init { cargarDatos() }
 
-    fun toggleBalanceVisible() {
-        _balanceVisible.value = !_balanceVisible.value
-    }
+    fun toggleBalanceVisible() { _balanceVisible.value = !_balanceVisible.value }
 
     fun recargar() {
         viewModelScope.launch {
@@ -66,34 +64,41 @@ class HomeViewModel(private val context: Context) : ViewModel() {
     }
 
     private fun cargarDatos() {
-        viewModelScope.launch {
-            cargarDatosInterno(mostrarLoading = true)
-        }
+        viewModelScope.launch { cargarDatosInterno(mostrarLoading = true) }
     }
 
-    // Obtiene el nombre del usuario desde Supabase Auth metadata
-    // Google lo guarda como "full_name", email registro lo guarda igual
-    // Si no hay nombre, usa el email, si no hay nada usa "Usuario"
+    // Obtiene el nombre del usuario. Orden de prioridad:
+    // 1. Supabase user_metadata "full_name" (Google lo pone automáticamente, email lo ponemos en el registro)
+    // 2. SharedPreferences "nombre_usuario" (fallback inmediato post-registro, antes de que Supabase actualice)
+    // 3. Email sin dominio ("juan" de "juan@mail.com")
+    // 4. "Usuario" como último recurso
     private fun obtenerNombreUsuario(): String {
         return try {
             val user = SupabaseClient.instance.auth.currentUserOrNull()
             val fullName = user?.userMetadata?.get("full_name")?.toString()?.replace("\"", "")
+
             when {
-                !fullName.isNullOrBlank() -> fullName.split(" ").first() // solo primer nombre
-                user?.email != null -> user.email!!.substringBefore("@") // "juan" de "juan@mail.com"
-                else -> "Usuario"
+                // Supabase tiene el nombre
+                !fullName.isNullOrBlank() -> fullName.split(" ").first()
+                else -> {
+                    // Fallback: SharedPreferences (se guarda al registrar)
+                    val prefs = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
+                    val nombreLocal = prefs.getString("nombre_usuario", null)
+                    when {
+                        !nombreLocal.isNullOrBlank() -> nombreLocal.split(" ").first()
+                        user?.email != null -> user.email!!.substringBefore("@")
+                        else -> "Usuario"
+                    }
+                }
             }
         } catch (e: Exception) {
-            // Fallback a SharedPreferences por si no hay sesión
-            val prefs = context.getSharedPreferences("gestion_prefs", Context.MODE_PRIVATE)
+            val prefs = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
             prefs.getString("nombre_usuario", "Usuario") ?: "Usuario"
         }
     }
 
     private suspend fun cargarDatosInterno(mostrarLoading: Boolean) {
-        if (mostrarLoading) {
-            _uiState.value = HomeUiState.Cargando
-        }
+        if (mostrarLoading) _uiState.value = HomeUiState.Cargando
         try {
             val nombre = obtenerNombreUsuario()
 
@@ -111,7 +116,6 @@ class HomeViewModel(private val context: Context) : ViewModel() {
             val historial = historialDeferred.await()
             val movimientos = presupuestoDeferred.await()
 
-            // IPC
             var ipcUltimo: String? = null
             var ipcAnterior: String? = null
             if (ipcDatos.size >= 2) {
@@ -123,7 +127,6 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 val mes = meses[partes[1].toInt()]
                 val anio = partes[0]
                 ipcUltimo = "IPC $mes $anio: ${String.format("%.1f", variacion)}%"
-
                 if (ipcDatos.size >= 3) {
                     val antepenultimo = ipcDatos[ipcDatos.size - 3]
                     val variacionAnt = ((penultimo.valor - antepenultimo.valor) / antepenultimo.valor) * 100
@@ -131,7 +134,6 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 }
             }
 
-            // Historial alquiler
             val ultimoAlquiler = historial.lastOrNull()
             val diasParaAjuste: Long? = try {
                 if (ultimoAlquiler != null) {
@@ -141,7 +143,6 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 } else null
             } catch (e: Exception) { null }
 
-            // Presupuesto
             val totalIngresos = movimientos.filter { it.tipo == "ingreso" }.sumOf { it.monto }
             val totalGastos = movimientos.filter { it.tipo == "gasto" }.sumOf { it.monto }
             val balance = totalIngresos - totalGastos
@@ -151,20 +152,14 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 .groupBy { it.categoria.lowercase() }
                 .mapValues { (_, items) -> items.sumOf { it.monto } }
 
-            val categoriasConocidas = listOf(
-                "supermercado", "transporte", "comida/salidas", "servicios", "salud"
-            )
-            val gastosVarios = gastosPorCategoria
-                .filter { it.key !in categoriasConocidas }
-                .values.sum()
-
+            val categoriasConocidas = listOf("supermercado", "transporte", "comida/salidas", "servicios", "salud")
+            val gastosVarios = gastosPorCategoria.filter { it.key !in categoriasConocidas }.values.sum()
             val presupuestoPorCat = if (totalIngresos > 0) totalIngresos / 6 else 0.0
 
             val categorias = (categoriasConocidas + "varios").map { cat ->
                 CategoriaResumen(
                     nombre = cat,
-                    gastado = if (cat == "varios") gastosVarios
-                    else (gastosPorCategoria[cat] ?: 0.0),
+                    gastado = if (cat == "varios") gastosVarios else (gastosPorCategoria[cat] ?: 0.0),
                     presupuesto = presupuestoPorCat
                 )
             }
@@ -184,15 +179,10 @@ class HomeViewModel(private val context: Context) : ViewModel() {
             val diaDelAnio = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR)
 
             _uiState.value = HomeUiState.Exito(
-                nombre = nombre,
-                ipcUltimo = ipcUltimo,
-                ipcAnterior = ipcAnterior,
-                ultimoAlquiler = ultimoAlquiler,
-                diasParaAjuste = diasParaAjuste,
+                nombre = nombre, ipcUltimo = ipcUltimo, ipcAnterior = ipcAnterior,
+                ultimoAlquiler = ultimoAlquiler, diasParaAjuste = diasParaAjuste,
                 consejo = consejos[diaDelAnio % consejos.size],
-                balance = balance,
-                totalIngresos = totalIngresos,
-                totalGastos = totalGastos,
+                balance = balance, totalIngresos = totalIngresos, totalGastos = totalGastos,
                 categorias = categorias
             )
         } catch (e: Exception) {

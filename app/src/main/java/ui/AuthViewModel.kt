@@ -23,6 +23,10 @@ sealed class AuthUiState {
     object Idle : AuthUiState()
     object Cargando : AuthUiState()
     object Exito : AuthUiState()
+    // Registro exitoso — el usuario debe configurar su ingreso
+    object RegistroExitoso : AuthUiState()
+    // Se envió el mail de reset
+    object ResetEnviado : AuthUiState()
     data class Error(val mensaje: String) : AuthUiState()
 }
 
@@ -35,7 +39,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
 
     // ═══════════════════════════════════════════════════════
     // REGISTRO CON EMAIL + CONTRASEÑA + NOMBRE
-    // Guarda el nombre en user_metadata de Supabase
+    // Después del registro exitoso va a la pantalla de ingreso
     // ═══════════════════════════════════════════════════════
     fun registrarConEmail(email: String, password: String, nombre: String) {
         viewModelScope.launch {
@@ -48,7 +52,8 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                         put("full_name", nombre)
                     }
                 }
-                _uiState.value = AuthUiState.Exito
+                // Va a RegistroExitoso para mostrar pantalla de ingreso
+                _uiState.value = AuthUiState.RegistroExitoso
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Error(
                     when {
@@ -73,7 +78,10 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     this.email = email
                     this.password = password
                 }
-                _uiState.value = AuthUiState.Exito
+                // Chequeamos si ya configuró su ingreso
+                val tieneIngreso = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
+                    .getFloat("ingreso_principal", 0f) > 0f
+                _uiState.value = if (tieneIngreso) AuthUiState.Exito else AuthUiState.RegistroExitoso
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Error(
                     when {
@@ -111,7 +119,10 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     provider = Google
                 }
 
-                _uiState.value = AuthUiState.Exito
+                // Chequeamos si ya configuró su ingreso
+                val tieneIngreso = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
+                    .getFloat("ingreso_principal", 0f) > 0f
+                _uiState.value = if (tieneIngreso) AuthUiState.Exito else AuthUiState.RegistroExitoso
 
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Error(
@@ -120,6 +131,24 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                         e.message?.contains("No credentials") == true -> "No se encontraron cuentas de Google"
                         else -> e.message ?: "Error con Google Sign-In"
                     }
+                )
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // RECUPERAR CONTRASEÑA
+    // Supabase manda un mail con link para resetear
+    // ═══════════════════════════════════════════════════════
+    fun recuperarPassword(email: String) {
+        viewModelScope.launch {
+            _uiState.value = AuthUiState.Cargando
+            try {
+                supabase.auth.resetPasswordForEmail(email)
+                _uiState.value = AuthUiState.ResetEnviado
+            } catch (e: Exception) {
+                _uiState.value = AuthUiState.Error(
+                    e.message ?: "Error al enviar el mail de recuperación"
                 )
             }
         }
@@ -139,21 +168,21 @@ class AuthViewModel(private val context: Context) : ViewModel() {
     fun verificarSesion() {
         viewModelScope.launch {
             try {
-                // Esperamos a que Supabase restaure la sesión guardada
                 supabase.auth.awaitInitialization()
                 val session = supabase.auth.currentSessionOrNull()
                 if (session != null) {
-                    _uiState.value = AuthUiState.Exito
+                    val tieneIngreso = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
+                        .getFloat("ingreso_principal", 0f) > 0f
+                    _uiState.value = if (tieneIngreso) AuthUiState.Exito else AuthUiState.RegistroExitoso
                 }
-            } catch (_: Exception) {
-                // No hay sesión guardada
-            }
+            } catch (_: Exception) { }
         }
     }
 
-    fun resetEstado() {
-        _uiState.value = AuthUiState.Idle
-    }
+    fun resetEstado() { _uiState.value = AuthUiState.Idle }
+
+    // Marca que ya completó el ingreso — va al home
+    fun completarSetup() { _uiState.value = AuthUiState.Exito }
 
     companion object {
         fun factory(context: Context) = object : ViewModelProvider.Factory {
