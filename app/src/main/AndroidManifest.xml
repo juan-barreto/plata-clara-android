@@ -54,5 +54,16 @@
         </provider>
 
     </application>
+    <!-- Limitar a pantallas de celular -->
+    <supports-screens
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="false"
+        android:xlargeScreens="false"
+        android:anyDensity="true" />
+
+    <!-- Requerir pantalla táctil (excluye Chromebooks sin touch) -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="true" />
+
 
 </manifest>
