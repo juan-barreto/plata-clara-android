@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.candlelabs.gestionpersonal.network.RetrofitClient
 import com.candlelabs.gestionpersonal.network.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Google
@@ -23,9 +24,7 @@ sealed class AuthUiState {
     object Idle : AuthUiState()
     object Cargando : AuthUiState()
     object Exito : AuthUiState()
-    // Registro exitoso — el usuario debe configurar su ingreso
     object RegistroExitoso : AuthUiState()
-    // Se envió el mail de reset
     object ResetEnviado : AuthUiState()
     data class Error(val mensaje: String) : AuthUiState()
 }
@@ -37,10 +36,23 @@ class AuthViewModel(private val context: Context) : ViewModel() {
 
     private val supabase = SupabaseClient.instance
 
-    // ═══════════════════════════════════════════════════════
-    // REGISTRO CON EMAIL + CONTRASEÑA + NOMBRE
-    // Después del registro exitoso va a la pantalla de ingreso
-    // ═══════════════════════════════════════════════════════
+    // Chequea si el usuario ya configuró ingreso O ya tiene movimientos
+    // Si cualquiera de las dos es true, no le pide el ingreso de nuevo
+    private suspend fun usuarioYaConfiguro(): Boolean {
+        // Check 1: SharedPreferences tiene ingreso
+        val tieneIngreso = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
+            .getFloat("ingreso_principal", 0f) > 0f
+        if (tieneIngreso) return true
+
+        // Check 2: Ya tiene movimientos en el backend (usuario existente)
+        return try {
+            val movimientos = RetrofitClient.instance.getPresupuesto("mensual")
+            movimientos.isNotEmpty()
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     fun registrarConEmail(email: String, password: String, nombre: String) {
         viewModelScope.launch {
             _uiState.value = AuthUiState.Cargando
@@ -48,11 +60,8 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                 supabase.auth.signUpWith(Email) {
                     this.email = email
                     this.password = password
-                    this.data = buildJsonObject {
-                        put("full_name", nombre)
-                    }
+                    this.data = buildJsonObject { put("full_name", nombre) }
                 }
-                // Va a RegistroExitoso para mostrar pantalla de ingreso
                 _uiState.value = AuthUiState.RegistroExitoso
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Error(
@@ -60,6 +69,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                         e.message?.contains("already registered") == true -> "Este email ya está registrado"
                         e.message?.contains("invalid") == true -> "Email o contraseña inválidos"
                         e.message?.contains("least 6") == true -> "La contraseña debe tener al menos 6 caracteres"
+                        e.message?.contains("rate_limit") == true -> "Demasiados intentos. Esperá unos minutos."
                         else -> e.message ?: "Error al registrar"
                     }
                 )
@@ -67,9 +77,6 @@ class AuthViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // LOGIN CON EMAIL + CONTRASEÑA
-    // ═══════════════════════════════════════════════════════
     fun loginConEmail(email: String, password: String) {
         viewModelScope.launch {
             _uiState.value = AuthUiState.Cargando
@@ -78,10 +85,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     this.email = email
                     this.password = password
                 }
-                // Chequeamos si ya configuró su ingreso
-                val tieneIngreso = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
-                    .getFloat("ingreso_principal", 0f) > 0f
-                _uiState.value = if (tieneIngreso) AuthUiState.Exito else AuthUiState.RegistroExitoso
+                _uiState.value = if (usuarioYaConfiguro()) AuthUiState.Exito else AuthUiState.RegistroExitoso
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Error(
                     when {
@@ -94,9 +98,6 @@ class AuthViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // LOGIN CON GOOGLE
-    // ═══════════════════════════════════════════════════════
     fun loginConGoogle() {
         viewModelScope.launch {
             _uiState.value = AuthUiState.Cargando
@@ -105,11 +106,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     .setServerClientId("195862119946-a3qlfmg7igilcmq6193ggo3ajpqeb1op.apps.googleusercontent.com")
                     .setFilterByAuthorizedAccounts(false)
                     .build()
-
-                val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
-                    .build()
-
+                val request = GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
                 val credentialManager = CredentialManager.create(context)
                 val result = credentialManager.getCredential(context, request)
                 val googleIdToken = GoogleIdTokenCredential.createFrom(result.credential.data)
@@ -119,11 +116,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     provider = Google
                 }
 
-                // Chequeamos si ya configuró su ingreso
-                val tieneIngreso = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
-                    .getFloat("ingreso_principal", 0f) > 0f
-                _uiState.value = if (tieneIngreso) AuthUiState.Exito else AuthUiState.RegistroExitoso
-
+                _uiState.value = if (usuarioYaConfiguro()) AuthUiState.Exito else AuthUiState.RegistroExitoso
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Error(
                     when {
@@ -136,10 +129,6 @@ class AuthViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // RECUPERAR CONTRASEÑA
-    // Supabase manda un mail con link para resetear
-    // ═══════════════════════════════════════════════════════
     fun recuperarPassword(email: String) {
         viewModelScope.launch {
             _uiState.value = AuthUiState.Cargando
@@ -147,21 +136,15 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                 supabase.auth.resetPasswordForEmail(email)
                 _uiState.value = AuthUiState.ResetEnviado
             } catch (e: Exception) {
-                _uiState.value = AuthUiState.Error(
-                    e.message ?: "Error al enviar el mail de recuperación"
-                )
+                _uiState.value = AuthUiState.Error(e.message ?: "Error al enviar el mail de recuperación")
             }
         }
     }
 
     fun cerrarSesion() {
         viewModelScope.launch {
-            try {
-                supabase.auth.signOut()
-                _uiState.value = AuthUiState.Idle
-            } catch (e: Exception) {
-                _uiState.value = AuthUiState.Error(e.message ?: "Error al cerrar sesión")
-            }
+            try { supabase.auth.signOut(); _uiState.value = AuthUiState.Idle }
+            catch (e: Exception) { _uiState.value = AuthUiState.Error(e.message ?: "Error al cerrar sesión") }
         }
     }
 
@@ -171,17 +154,13 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                 supabase.auth.awaitInitialization()
                 val session = supabase.auth.currentSessionOrNull()
                 if (session != null) {
-                    val tieneIngreso = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
-                        .getFloat("ingreso_principal", 0f) > 0f
-                    _uiState.value = if (tieneIngreso) AuthUiState.Exito else AuthUiState.RegistroExitoso
+                    _uiState.value = if (usuarioYaConfiguro()) AuthUiState.Exito else AuthUiState.RegistroExitoso
                 }
             } catch (_: Exception) { }
         }
     }
 
     fun resetEstado() { _uiState.value = AuthUiState.Idle }
-
-    // Marca que ya completó el ingreso — va al home
     fun completarSetup() { _uiState.value = AuthUiState.Exito }
 
     companion object {
