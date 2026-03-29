@@ -74,7 +74,7 @@ fun PresupuestoScreen() {
     var mostrarBottomSheet by remember { mutableStateOf(false) }
     var movimientoEditando by remember { mutableStateOf<MovimientoItem?>(null) }
     var mostrarConfirmBorrado by remember { mutableStateOf(false) }
-    var idParaBorrar by remember { mutableStateOf<Int?>(null) }
+    var idParaBorrar by remember { mutableStateOf<String?>(null) }
     var mostrarConfirmReset by remember { mutableStateOf(false) }
     var mostrarMenuExport by remember { mutableStateOf(false) }
     var graficoDeTorta by remember { mutableStateOf(true) }

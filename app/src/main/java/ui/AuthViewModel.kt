@@ -46,7 +46,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
 
         // Check 2: Ya tiene movimientos en el backend (usuario existente)
         return try {
-            val movimientos = RetrofitClient.instance.getPresupuesto("mensual")
+            val movimientos = RetrofitClient.create(SupabaseClient.instance).getPresupuesto("mensual")
             movimientos.isNotEmpty()
         } catch (e: Exception) {
             false

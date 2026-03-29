@@ -14,6 +14,7 @@ import com.candlelabs.gestionpersonal.model.MovimientoItem
 import com.candlelabs.gestionpersonal.model.MovimientoRequest
 import com.candlelabs.gestionpersonal.model.MovimientoEditRequest
 import com.candlelabs.gestionpersonal.network.RetrofitClient
+import com.candlelabs.gestionpersonal.network.SupabaseClient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,7 +52,7 @@ class PresupuestoViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = PresupuestoUiState.Cargando
             try {
-                val movimientos = RetrofitClient.instance.getPresupuesto(_filtro.value)
+                val movimientos = RetrofitClient.create(SupabaseClient.instance).getPresupuesto(_filtro.value)
                 _uiState.value = PresupuestoUiState.Exito(movimientos)
             } catch (e: Exception) {
                 _uiState.value = PresupuestoUiState.Error(e.message ?: "Error desconocido")
@@ -64,7 +65,7 @@ class PresupuestoViewModel : ViewModel() {
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
-                val movimientos = RetrofitClient.instance.getPresupuesto(_filtro.value)
+                val movimientos = RetrofitClient.create(SupabaseClient.instance).getPresupuesto(_filtro.value)
                 _uiState.value = PresupuestoUiState.Exito(movimientos)
             } catch (e: Exception) {
                 _uiState.value = PresupuestoUiState.Error(e.message ?: "Error desconocido")
@@ -81,7 +82,7 @@ class PresupuestoViewModel : ViewModel() {
     fun agregarMovimiento(tipo: String, categoria: String, descripcion: String, monto: Double) {
         viewModelScope.launch {
             try {
-                RetrofitClient.instance.agregarMovimiento(
+                RetrofitClient.create(SupabaseClient.instance).agregarMovimiento(
                     MovimientoRequest(tipo, categoria, descripcion, monto)
                 )
                 cargarMovimientos()
@@ -91,10 +92,10 @@ class PresupuestoViewModel : ViewModel() {
         }
     }
 
-    fun editarMovimiento(id: Int, tipo: String, categoria: String, descripcion: String, monto: Double) {
+    fun editarMovimiento(id: String, tipo: String, categoria: String, descripcion: String, monto: Double) {
         viewModelScope.launch {
             try {
-                RetrofitClient.instance.editarMovimiento(id, MovimientoEditRequest(tipo, categoria, descripcion, monto))
+                RetrofitClient.create(SupabaseClient.instance).editarMovimiento(id, MovimientoEditRequest(tipo, categoria, descripcion, monto))
                 cargarMovimientos()
             } catch (e: Exception) {
                 _uiState.value = PresupuestoUiState.Error(e.message ?: "Error al editar")
@@ -102,10 +103,10 @@ class PresupuestoViewModel : ViewModel() {
         }
     }
 
-    fun borrarMovimiento(id: Int) {
+    fun borrarMovimiento(id: String) {
         viewModelScope.launch {
             try {
-                RetrofitClient.instance.borrarMovimiento(id)
+                RetrofitClient.create(SupabaseClient.instance).borrarMovimiento(id)
                 cargarMovimientos()
             } catch (e: Exception) {
                 _uiState.value = PresupuestoUiState.Error(e.message ?: "Error al borrar")
@@ -117,7 +118,7 @@ class PresupuestoViewModel : ViewModel() {
     fun resetMovimientos() {
         viewModelScope.launch {
             try {
-                RetrofitClient.instance.resetPresupuesto()
+                RetrofitClient.create(SupabaseClient.instance).resetPresupuesto()
                 cargarMovimientos()
             } catch (e: Exception) {
                 _uiState.value = PresupuestoUiState.Error(e.message ?: "Error al resetear")
@@ -145,7 +146,7 @@ class PresupuestoViewModel : ViewModel() {
         viewModelScope.launch {
             _exportando.value = true
             try {
-                val response = RetrofitClient.instance.exportarExcel(filtro)
+                val response = RetrofitClient.create(SupabaseClient.instance).exportarExcel(filtro)
                 if (response.isSuccessful) {
                     val bytes = response.body()?.bytes() ?: throw Exception("Respuesta vacía")
                     val nombre = "PlataClara_${filtro}_${System.currentTimeMillis()}.xlsx"
@@ -168,7 +169,7 @@ class PresupuestoViewModel : ViewModel() {
         viewModelScope.launch {
             _exportando.value = true
             try {
-                val response = RetrofitClient.instance.exportarPdf(filtro)
+                val response = RetrofitClient.create(SupabaseClient.instance).exportarPdf(filtro)
                 if (response.isSuccessful) {
                     val bytes = response.body()?.bytes() ?: throw Exception("Respuesta vacía")
                     val nombre = "PlataClara_${filtro}_${System.currentTimeMillis()}.pdf"

@@ -2,7 +2,7 @@ package com.candlelabs.gestionpersonal.model
 
 // Un movimiento individual — ingreso o gasto
 data class MovimientoItem(
-    val id: Int,
+    val id: String,
     val tipo: String,           // "ingreso" o "gasto"
     val categoria: String,      // "Sueldo", "Alquiler", etc
     val descripcion: String?,   // detalle opcional — puede ser null

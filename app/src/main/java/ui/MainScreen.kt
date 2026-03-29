@@ -232,7 +232,7 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}) {
                 onConfirmar = { catBackend, monto ->
                     scope.launch {
                         try {
-                            RetrofitClient.instance.agregarMovimiento(
+                            RetrofitClient.create(SupabaseClient.instance).agregarMovimiento(
                                 MovimientoRequest("gasto", catBackend, "Gasto rápido", monto)
                             )
                         } catch (_: Exception) {}

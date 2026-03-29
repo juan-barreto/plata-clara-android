@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.candlelabs.gestionpersonal.model.AsistenteRequest
 import com.candlelabs.gestionpersonal.model.MensajeChat
 import com.candlelabs.gestionpersonal.network.RetrofitClient
+import com.candlelabs.gestionpersonal.network.SupabaseClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -59,7 +60,7 @@ class AsistenteViewModel(private val context: Context) : ViewModel() {
                     nombre = obtenerNombre()  // nuevo — manda el nombre al backend
                 )
 
-                val respuesta = RetrofitClient.instance.consultarAsistente(request)
+                val respuesta = RetrofitClient.create(com.candlelabs.gestionpersonal.network.SupabaseClient.instance).consultarAsistente(request)
 
                 // Reemplazamos el cargando por la respuesta real
                 _mensajes.value = _mensajes.value.dropLast(1) + MensajeChatUI(

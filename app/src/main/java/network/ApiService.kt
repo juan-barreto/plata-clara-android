@@ -64,15 +64,15 @@ interface ApiService {
 
     // Agrega un movimiento nuevo
     @POST("presupuesto")
-    suspend fun agregarMovimiento(@Body request: MovimientoRequest): MensajeResponse
+    suspend fun agregarMovimiento(@Body request: MovimientoRequest): List<MovimientoItem>
 
     // Edita un movimiento existente
     @PUT("presupuesto/{id}")
-    suspend fun editarMovimiento(@Path("id") id: Int, @Body request: MovimientoEditRequest): MensajeResponse
+    suspend fun editarMovimiento(@Path("id") id: String, @Body request: MovimientoEditRequest): MensajeResponse
 
     // Borra un movimiento
     @DELETE("presupuesto/{id}")
-    suspend fun borrarMovimiento(@Path("id") id: Int): MensajeResponse
+    suspend fun borrarMovimiento(@Path("id") id: String): MensajeResponse
     //Borra todos los movimientos
 
     @DELETE("presupuesto/reset")

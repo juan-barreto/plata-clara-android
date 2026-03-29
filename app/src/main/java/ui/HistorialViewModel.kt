@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.candlelabs.gestionpersonal.model.HistorialItem
 import com.candlelabs.gestionpersonal.network.RetrofitClient
+import com.candlelabs.gestionpersonal.network.SupabaseClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -27,7 +28,7 @@ class HistorialViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = HistorialUiState.Cargando
             try {
-                val resultado = RetrofitClient.instance.getHistorial()
+                val resultado = RetrofitClient.create(SupabaseClient.instance).getHistorial()
                 _uiState.value = HistorialUiState.Exito(resultado)
             } catch (e: Exception) {
                 _uiState.value = HistorialUiState.Error(e.message ?: "Error desconocido")
@@ -39,7 +40,7 @@ class HistorialViewModel : ViewModel() {
     fun borrarUno(id: Int) {
         viewModelScope.launch {
             try {
-                RetrofitClient.instance.borrarCalculo(id)
+                RetrofitClient.create(SupabaseClient.instance).borrarCalculo(id)
                 cargarHistorial() // recarga la lista después de borrar
             } catch (e: Exception) {
                 _uiState.value = HistorialUiState.Error(e.message ?: "Error al borrar")
@@ -51,7 +52,7 @@ class HistorialViewModel : ViewModel() {
     fun borrarTodo() {
         viewModelScope.launch {
             try {
-                RetrofitClient.instance.borrarHistorial()
+                RetrofitClient.create(SupabaseClient.instance).borrarHistorial()
                 cargarHistorial() // recarga la lista después de borrar
             } catch (e: Exception) {
                 _uiState.value = HistorialUiState.Error(e.message ?: "Error al borrar")

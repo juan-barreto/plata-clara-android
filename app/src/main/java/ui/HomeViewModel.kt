@@ -103,13 +103,13 @@ class HomeViewModel(private val context: Context) : ViewModel() {
             val nombre = obtenerNombreUsuario()
 
             val ipcDeferred = viewModelScope.async {
-                try { RetrofitClient.instance.getIpc() } catch (e: Exception) { emptyList() }
+                try { RetrofitClient.create(SupabaseClient.instance).getIpc() } catch (e: Exception) { emptyList() }
             }
             val historialDeferred = viewModelScope.async {
-                try { RetrofitClient.instance.getHistorial() } catch (e: Exception) { emptyList() }
+                try { RetrofitClient.create(SupabaseClient.instance).getHistorial() } catch (e: Exception) { emptyList() }
             }
             val presupuestoDeferred = viewModelScope.async {
-                try { RetrofitClient.instance.getPresupuesto("mensual") } catch (e: Exception) { emptyList() }
+                try { RetrofitClient.create(SupabaseClient.instance).getPresupuesto("mensual") } catch (e: Exception) { emptyList() }
             }
 
             val ipcDatos = ipcDeferred.await()

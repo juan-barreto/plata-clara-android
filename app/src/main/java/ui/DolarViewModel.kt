@@ -3,6 +3,7 @@ import androidx.lifecycle.ViewModel        // La clase base que hace sobrevivir 
 import androidx.lifecycle.viewModelScope   // El contexto para corrutinas del ViewModel
 import com.candlelabs.gestionpersonal.model.DolarResponse  // Tu data class
 import com.candlelabs.gestionpersonal.network.RetrofitClient // Tu cliente HTTP
+import com.candlelabs.gestionpersonal.network.SupabaseClient
 import kotlinx.coroutines.flow.MutableStateFlow  // Contenedor modificable
 import kotlinx.coroutines.flow.StateFlow         // Contenedor de solo lectura
 import kotlinx.coroutines.launch// Para lanzar corrutinas
@@ -30,7 +31,7 @@ class DolarViewModel : ViewModel() {
         // viewModelScope: la corrutina vive mientras el ViewModel exista
         viewModelScope.launch {
             try {
-                val resultado = RetrofitClient.instance.getDolar()
+                val resultado = RetrofitClient.create(SupabaseClient.instance).getDolar()
                 _uiState.value = DolarUiState.Exito(resultado)
             } catch (e: Exception) {
                 _uiState.value = DolarUiState.Error(e.message ?: "Error desconocido")

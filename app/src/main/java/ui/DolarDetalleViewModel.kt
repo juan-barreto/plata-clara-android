@@ -8,7 +8,7 @@ import com.candlelabs.gestionpersonal.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-
+import com.candlelabs.gestionpersonal.network.SupabaseClient
 sealed class DolarDetalleUiState {
     object Cargando : DolarDetalleUiState()
     data class Exito(val historial: List<HistorialCotizacionItem>) : DolarDetalleUiState()
@@ -30,7 +30,7 @@ class DolarDetalleViewModel(private val casa: String) : ViewModel() {
         viewModelScope.launch {
             _uiState.value = DolarDetalleUiState.Cargando
             try {
-                val historial = RetrofitClient.instance.getHistorialCotizacion(casa)
+                val historial = RetrofitClient.create(SupabaseClient.instance).getHistorialCotizacion(casa)
                 _uiState.value = DolarDetalleUiState.Exito(historial)
             } catch (e: Exception) {
                 _uiState.value = DolarDetalleUiState.Error(e.message ?: "Error desconocido")
