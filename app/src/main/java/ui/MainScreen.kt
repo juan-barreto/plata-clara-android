@@ -141,10 +141,10 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}) {
         Scaffold(
             contentWindowInsets = WindowInsets(0),
             containerColor = FondoNegro,
-            modifier = Modifier.statusBarsPadding(),
+            modifier = Modifier.systemBarsPadding(),
             bottomBar = {
                 Row(
-                    Modifier.fillMaxWidth().height(70.dp).shadow(16.dp).background(FondoPrincipal).padding(horizontal = 8.dp),
+                    Modifier.fillMaxWidth().height(70.dp).navigationBarsPadding().shadow(16.dp).background(FondoPrincipal).padding(horizontal = 8.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically
                 ) {
                     items.forEach { item ->
