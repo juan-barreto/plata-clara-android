@@ -27,7 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.candlelabs.gestionpersonal.R
+import com.candlelabs.gestionpersonal.network.SupabaseClient
 import com.candlelabs.gestionpersonal.ui.theme.*
+import io.github.jan.supabase.auth.auth
 
 @Composable
 fun AuthScreen(onAuthExitoso: () -> Unit) {
@@ -44,6 +46,7 @@ fun AuthScreen(onAuthExitoso: () -> Unit) {
 
     LaunchedEffect(uiState) {
         if (uiState is AuthUiState.RegistroExitoso) pantalla = "ingreso"
+        if (uiState is AuthUiState.EmailConfirmacionPendiente) pantalla = "confirmacion"
     }
 
     when (pantalla) {
@@ -60,14 +63,19 @@ fun AuthScreen(onAuthExitoso: () -> Unit) {
             viewModel = viewModel, uiState = uiState,
             onVolver = { pantalla = "login"; viewModel.resetEstado() }
         )
+        "confirmacion" -> PantallaConfirmacion(
+            onVolver = { pantalla = "login"; viewModel.resetEstado() }
+        )
         "ingreso" -> PantallaIngreso(
             onOmitir = { viewModel.completarSetup() },
             onGuardar = { tipo, monto ->
+                // Guardamos con userId para aislar datos por usuario
+                val userId = SupabaseClient.instance.auth.currentUserOrNull()?.id ?: "anonimo"
                 context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE).edit()
-                    .putString("tipo_ingreso", tipo)
-                    .putFloat("ingreso_principal", monto.toFloat())
+                    .putString("tipo_ingreso_$userId", tipo)
+                    .putFloat("ingreso_${userId}_principal", monto.toFloat())
                     .apply()
-                viewModel.completarSetup()
+                viewModel.guardarIngresoBase(tipo, monto)
             }
         )
     }
@@ -143,7 +151,6 @@ private fun PantallaRegistro(
     var mostrarPassword by remember { mutableStateOf(false) }
     var mostrarRepetir by remember { mutableStateOf(false) }
 
-    // Validaciones en tiempo real
     val passwordsCoinciden = password == repetirPassword
     val passwordLarga = password.length >= 6
     val formularioValido = nombre.isNotBlank() && email.isNotBlank() && passwordLarga && passwordsCoinciden
@@ -164,21 +171,17 @@ private fun PantallaRegistro(
 
             Spacer(Modifier.height(24.dp))
 
-            // Nombre
             CampoTexto(value = nombre, onValueChange = { nombre = it }, label = "Nombre",
                 icon = Icons.Rounded.Person, keyboardType = KeyboardType.Text)
             Spacer(Modifier.height(12.dp))
 
-            // Email
             CampoTexto(value = email, onValueChange = { email = it }, label = "Email",
                 icon = Icons.Rounded.Email, keyboardType = KeyboardType.Email)
             Spacer(Modifier.height(12.dp))
 
-            // Contraseña
             CampoPassword(value = password, onValueChange = { password = it },
                 mostrar = mostrarPassword, onToggle = { mostrarPassword = !mostrarPassword }, label = "Contraseña")
 
-            // Hint de largo
             if (password.isNotEmpty() && !passwordLarga) {
                 Text("Mínimo 6 caracteres", style = MaterialTheme.typography.bodySmall,
                     color = RojoGasto, modifier = Modifier.align(Alignment.Start).padding(top = 4.dp))
@@ -186,16 +189,13 @@ private fun PantallaRegistro(
 
             Spacer(Modifier.height(12.dp))
 
-            // Repetir contraseña
             CampoPassword(value = repetirPassword, onValueChange = { repetirPassword = it },
                 mostrar = mostrarRepetir, onToggle = { mostrarRepetir = !mostrarRepetir }, label = "Repetir contraseña")
 
-            // Mensaje de error si no coinciden
             if (repetirPassword.isNotEmpty() && !passwordsCoinciden) {
                 Text("Las contraseñas no coinciden", style = MaterialTheme.typography.bodySmall,
                     color = RojoGasto, modifier = Modifier.align(Alignment.Start).padding(top = 4.dp))
             }
-            // Check verde si coinciden
             if (repetirPassword.isNotEmpty() && passwordsCoinciden && passwordLarga) {
                 Row(Modifier.align(Alignment.Start).padding(top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -206,14 +206,11 @@ private fun PantallaRegistro(
 
             Spacer(Modifier.height(16.dp))
 
-            // Botón crear cuenta
             BotonPrincipal(
                 texto = "Crear cuenta",
                 cargando = uiState is AuthUiState.Cargando,
                 habilitado = formularioValido,
                 onClick = {
-                    // Guardamos nombre en SharedPreferences como fallback inmediato
-                    // para que el Home lo lea sin esperar a que Supabase actualice metadata
                     context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE).edit()
                         .putString("nombre_usuario", nombre)
                         .apply()
@@ -233,6 +230,33 @@ private fun PantallaRegistro(
             }
             MensajeError(uiState)
             Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PANTALLA CONFIRMACIÓN EMAIL
+// ═══════════════════════════════════════════════════════════
+@Composable
+private fun PantallaConfirmacion(onVolver: () -> Unit) {
+    Box(Modifier.fillMaxSize().background(FondoNegro)) {
+        Column(
+            Modifier.fillMaxSize().padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(Icons.Rounded.MarkEmailRead, null, tint = VerdePrimario, modifier = Modifier.size(72.dp))
+            Spacer(Modifier.height(24.dp))
+            Text("Revisá tu email", style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold, color = TextoPrimario)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "Te mandamos un link de confirmación. Una vez que confirmes tu cuenta podés iniciar sesión.",
+                style = MaterialTheme.typography.bodyMedium, color = TextoSecundario,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(32.dp))
+            BotonPrincipal(texto = "Ir al login", cargando = false, habilitado = true, onClick = onVolver)
         }
     }
 }
@@ -367,7 +391,6 @@ private fun PantallaIngreso(onOmitir: () -> Unit, onGuardar: (String, Double) ->
         }
     }
 }
-
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTES REUTILIZABLES

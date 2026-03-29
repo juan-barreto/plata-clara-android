@@ -31,7 +31,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.candlelabs.gestionpersonal.R
+import com.candlelabs.gestionpersonal.network.SupabaseClient
 import com.candlelabs.gestionpersonal.ui.theme.*
+import io.github.jan.supabase.auth.auth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,14 +63,17 @@ fun HomeScreen(navController: NavController) {
             val datos = uiState as HomeUiState.Exito
             val visible by viewModel.balanceVisible.collectAsState()
 
+            // ID del usuario logueado — se usa para aislar SharedPreferences por usuario
+            val userId = SupabaseClient.instance.auth.currentUserOrNull()?.id ?: "anonimo"
+
             // Dialog de edición de categoría
             categoriaEditando?.let { cat ->
                 val presupuestosOtras = datos.categorias
                     .filter { it.nombre != cat.nombre }
                     .sumOf {
-                        // Lee el presupuesto personalizado de SharedPrefs o usa el default
+                        // Lee el presupuesto personalizado de SharedPrefs usando userId
                         val prefs = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
-                        val custom = prefs.getFloat("presupuesto_${it.nombre}", -1f)
+                        val custom = prefs.getFloat("presupuesto_${userId}_${it.nombre}", -1f)
                         if (custom >= 0f) custom.toDouble() else it.presupuesto
                     }
 
@@ -77,9 +82,9 @@ fun HomeScreen(navController: NavController) {
                     totalIngresos = datos.totalIngresos,
                     presupuestosOtrasCategorias = presupuestosOtras,
                     onGuardar = { nuevoMonto ->
-                        // Guardamos el presupuesto personalizado en SharedPreferences
+                        // Guardamos el presupuesto personalizado usando userId como prefijo
                         context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE).edit()
-                            .putFloat("presupuesto_${cat.nombre}", nuevoMonto.toFloat())
+                            .putFloat("presupuesto_${userId}_${cat.nombre}", nuevoMonto.toFloat())
                             .apply()
                         categoriaEditando = null
                         // Recargamos para que las cards se actualicen
@@ -140,10 +145,10 @@ fun HomeScreen(navController: NavController) {
                                 color = TextoSobreCreme, fontWeight = FontWeight.Bold, letterSpacing = 1.sp,
                                 modifier = Modifier.padding(start = 4.dp).offset(y = (-28).dp))
 
-                            // Lee presupuestos personalizados de SharedPrefs
+                            // Lee presupuestos personalizados de SharedPrefs usando userId
                             val prefs = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
                             val categoriasConCustom = datos.categorias.map { cat ->
-                                val custom = prefs.getFloat("presupuesto_${cat.nombre}", -1f)
+                                val custom = prefs.getFloat("presupuesto_${userId}_${cat.nombre}", -1f)
                                 if (custom >= 0f) cat.copy(presupuesto = custom.toDouble()) else cat
                             }
 

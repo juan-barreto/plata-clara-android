@@ -34,7 +34,7 @@ import com.candlelabs.gestionpersonal.model.MovimientoItem
 import com.candlelabs.gestionpersonal.ui.theme.*
 
 // ── Categorías ──
-val CATEGORIAS_INGRESO = listOf("Sueldo", "Freelance", "Extra", "Inversión", "Otro ingreso")
+val CATEGORIAS_INGRESO = listOf("Sueldo", "Freelance", "Negocio propio", "Changas", "Jubilación", "Otro ingreso")
 val CATEGORIAS_GASTO = listOf(
     "Alquiler", "Supermercado", "Transporte", "Servicios", "Comida/Salidas",
     "Salud", "Tecnología", "Educación", "Entretenimiento", "Deudas/Cuotas", "Otro gasto"
@@ -44,10 +44,10 @@ val CATEGORIAS_GASTO = listOf(
 val ICONOS_CATEGORIA = mapOf(
     "Sueldo" to Icons.Rounded.Work,
     "Freelance" to Icons.Rounded.Laptop,
-    "Extra" to Icons.Rounded.AddCircle,
-    "Inversión" to Icons.Rounded.TrendingUp,
+    "Negocio propio" to Icons.Rounded.Store,
+    "Changas" to Icons.Rounded.Build,
+    "Jubilación" to Icons.Rounded.SelfImprovement,
     "Otro ingreso" to Icons.Rounded.AttachMoney,
-    "Alquiler" to Icons.Rounded.Home,
     "Supermercado" to Icons.Rounded.ShoppingCart,
     "Transporte" to Icons.Rounded.DirectionsBus,
     "Servicios" to Icons.Rounded.PhoneAndroid,

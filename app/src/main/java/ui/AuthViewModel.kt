@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.candlelabs.gestionpersonal.model.MovimientoRequest
 import com.candlelabs.gestionpersonal.network.RetrofitClient
 import com.candlelabs.gestionpersonal.network.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -24,6 +25,7 @@ sealed class AuthUiState {
     object Idle : AuthUiState()
     object Cargando : AuthUiState()
     object Exito : AuthUiState()
+    object EmailConfirmacionPendiente : AuthUiState()
     object RegistroExitoso : AuthUiState()
     object ResetEnviado : AuthUiState()
     data class Error(val mensaje: String) : AuthUiState()
@@ -37,20 +39,15 @@ class AuthViewModel(private val context: Context) : ViewModel() {
     private val supabase = SupabaseClient.instance
 
     // Chequea si el usuario ya configuró ingreso O ya tiene movimientos
-    // Si cualquiera de las dos es true, no le pide el ingreso de nuevo
     private suspend fun usuarioYaConfiguro(): Boolean {
-        // Check 1: SharedPreferences tiene ingreso
+        val userId = supabase.auth.currentUserOrNull()?.id ?: ""
         val tieneIngreso = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
-            .getFloat("ingreso_principal", 0f) > 0f
+            .getFloat("ingreso_${userId}_principal", 0f) > 0f
         if (tieneIngreso) return true
-
-        // Check 2: Ya tiene movimientos en el backend (usuario existente)
         return try {
             val movimientos = RetrofitClient.create(SupabaseClient.instance).getPresupuesto("mensual")
             movimientos.isNotEmpty()
-        } catch (e: Exception) {
-            false
-        }
+        } catch (e: Exception) { false }
     }
 
     fun registrarConEmail(email: String, password: String, nombre: String) {
@@ -62,7 +59,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     this.password = password
                     this.data = buildJsonObject { put("full_name", nombre) }
                 }
-                _uiState.value = AuthUiState.RegistroExitoso
+                _uiState.value = AuthUiState.EmailConfirmacionPendiente
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Error(
                     when {
@@ -110,12 +107,10 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                 val credentialManager = CredentialManager.create(context)
                 val result = credentialManager.getCredential(context, request)
                 val googleIdToken = GoogleIdTokenCredential.createFrom(result.credential.data)
-
                 supabase.auth.signInWith(IDToken) {
                     idToken = googleIdToken.idToken
                     provider = Google
                 }
-
                 _uiState.value = if (usuarioYaConfiguro()) AuthUiState.Exito else AuthUiState.RegistroExitoso
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Error(
@@ -162,6 +157,28 @@ class AuthViewModel(private val context: Context) : ViewModel() {
 
     fun resetEstado() { _uiState.value = AuthUiState.Idle }
     fun completarSetup() { _uiState.value = AuthUiState.Exito }
+
+    // Guarda el ingreso base del onboarding en Supabase como movimiento real
+    // Guarda el ingreso base y navega al Home recién cuando termina el INSERT
+    fun guardarIngresoBase(tipo: String, monto: Double) {
+        viewModelScope.launch {
+            try {
+                RetrofitClient.create(SupabaseClient.instance).agregarMovimiento(
+                    MovimientoRequest(
+                        tipo = "ingreso",
+                        categoria = tipo,
+                        descripcion = "Ingreso base mensual",
+                        monto = monto
+                    )
+                )
+            } catch (_: Exception) {
+                // Si falla igual navegamos — el usuario puede agregarlo desde Presupuesto
+            }
+            completarSetup() // ← se mueve acá adentro
+        }
+    }
+
+
 
     companion object {
         fun factory(context: Context) = object : ViewModelProvider.Factory {
