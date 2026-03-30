@@ -44,7 +44,6 @@ fun HomeScreen(navController: NavController) {
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
 
-    // Estado del dialog de edición de categoría
     var categoriaEditando by remember { mutableStateOf<CategoriaResumen?>(null) }
 
     when (uiState) {
@@ -66,12 +65,10 @@ fun HomeScreen(navController: NavController) {
             // ID del usuario logueado — se usa para aislar SharedPreferences por usuario
             val userId = SupabaseClient.instance.auth.currentUserOrNull()?.id ?: "anonimo"
 
-            // Dialog de edición de categoría
             categoriaEditando?.let { cat ->
                 val presupuestosOtras = datos.categorias
                     .filter { it.nombre != cat.nombre }
                     .sumOf {
-                        // Lee el presupuesto personalizado de SharedPrefs usando userId
                         val prefs = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
                         val custom = prefs.getFloat("presupuesto_${userId}_${it.nombre}", -1f)
                         if (custom >= 0f) custom.toDouble() else it.presupuesto
@@ -82,12 +79,10 @@ fun HomeScreen(navController: NavController) {
                     totalIngresos = datos.totalIngresos,
                     presupuestosOtrasCategorias = presupuestosOtras,
                     onGuardar = { nuevoMonto ->
-                        // Guardamos el presupuesto personalizado usando userId como prefijo
                         context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE).edit()
                             .putFloat("presupuesto_${userId}_${cat.nombre}", nuevoMonto.toFloat())
                             .apply()
                         categoriaEditando = null
-                        // Recargamos para que las cards se actualicen
                         viewModel.recargar()
                     },
                     onDismiss = { categoriaEditando = null }
@@ -102,7 +97,6 @@ fun HomeScreen(navController: NavController) {
                 Column(
                     modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
                 ) {
-                    // HEADER
                     Box(
                         modifier = Modifier.fillMaxWidth().background(FondoNegro)
                             .padding(horizontal = 16.dp).padding(top = 0.dp, bottom = 40.dp)
@@ -122,7 +116,6 @@ fun HomeScreen(navController: NavController) {
                         }
                     }
 
-                    // BLOQUE CREMA
                     Column(
                         modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 700.dp)
                             .padding(horizontal = 16.dp)
@@ -130,7 +123,6 @@ fun HomeScreen(navController: NavController) {
                             .padding(horizontal = 14.dp).padding(top = 8.dp, bottom = 32.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // HERO CARD
                         HeroCard(
                             balance = datos.balance, totalIngresos = datos.totalIngresos,
                             totalGastos = datos.totalGastos, visible = visible,
@@ -139,13 +131,11 @@ fun HomeScreen(navController: NavController) {
                             modifier = Modifier.offset(y = (-40).dp)
                         )
 
-                        // CATEGORÍAS — ahora son tocables
                         if (datos.categorias.isNotEmpty()) {
                             Text("TU PRESUPUESTO", style = MaterialTheme.typography.labelSmall,
                                 color = TextoSobreCreme, fontWeight = FontWeight.Bold, letterSpacing = 1.sp,
                                 modifier = Modifier.padding(start = 4.dp).offset(y = (-28).dp))
 
-                            // Lee presupuestos personalizados de SharedPrefs usando userId
                             val prefs = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
                             val categoriasConCustom = datos.categorias.map { cat ->
                                 val custom = prefs.getFloat("presupuesto_${userId}_${cat.nombre}", -1f)
@@ -153,8 +143,10 @@ fun HomeScreen(navController: NavController) {
                             }
 
                             categoriasConCustom.chunked(2).forEach { fila ->
-                                Row(Modifier.fillMaxWidth().offset(y = (-28).dp),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Row(
+                                    Modifier.fillMaxWidth().offset(y = (-28).dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
                                     fila.forEach { cat ->
                                         CategoriaCard(
                                             cat = cat, visible = visible,
@@ -167,7 +159,6 @@ fun HomeScreen(navController: NavController) {
                             }
                         }
 
-                        // CONSEJO
                         ConsejoCard(datos.consejo, Modifier.offset(y = (-28).dp))
                     }
                 }
@@ -176,9 +167,6 @@ fun HomeScreen(navController: NavController) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════
-// HERO CARD
-// ═══════════════════════════════════════════════════════════
 @Composable
 private fun HeroCard(
     balance: Double, totalIngresos: Double, totalGastos: Double,
@@ -228,9 +216,6 @@ private fun HeroCard(
     }
 }
 
-// ═══════════════════════════════════════════════════════════
-// CATEGORÍA CARD — ahora tocable
-// ═══════════════════════════════════════════════════════════
 @Composable
 private fun CategoriaCard(cat: CategoriaResumen, visible: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Card(
@@ -248,34 +233,35 @@ private fun CategoriaCard(cat: CategoriaResumen, visible: Boolean, modifier: Mod
                 Icon(iconoPara(cat.nombre), null, tint = TextoSecundario, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.height(8.dp))
-            if (visible) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("$${fmtAR(cat.disponible)}", style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold, color = TextoPrimario)
-                    Text(if (cat.excedido) "▼" else "▲", fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                        color = if (cat.excedido) TextoMuted.copy(alpha = 0.5f) else VerdePrimario)
+            if (cat.presupuesto > 0) {
+                if (visible) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("$${fmtAR(cat.disponible)}", style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold, color = TextoPrimario)
+                        Text(if (cat.excedido) "▼" else "▲", fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                            color = if (cat.excedido) TextoMuted.copy(alpha = 0.5f) else VerdePrimario)
+                    }
+                    if (cat.excedido) {
+                        Text("Excediste el presupuesto", style = MaterialTheme.typography.labelSmall,
+                            color = RojoGasto, fontSize = 10.sp)
+                    }
+                } else {
+                    Text("$ ••••", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextoMuted)
                 }
-                if (cat.excedido) {
-                    Text("Excediste el presupuesto", style = MaterialTheme.typography.labelSmall,
-                        color = RojoGasto, fontSize = 10.sp)
+                Spacer(Modifier.height(10.dp))
+                Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Divisor)) {
+                    if (visible) {
+                        Box(Modifier.fillMaxWidth(cat.porcentaje.coerceIn(0f, 1f)).fillMaxHeight()
+                            .clip(RoundedCornerShape(2.dp)).background(VerdePrimario))
+                    }
                 }
             } else {
-                Text("$ ••••", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextoMuted)
-            }
-            Spacer(Modifier.height(10.dp))
-            Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Divisor)) {
-                if (visible) {
-                    Box(Modifier.fillMaxWidth(cat.porcentaje.coerceIn(0f, 1f)).fillMaxHeight()
-                        .clip(RoundedCornerShape(2.dp)).background(VerdePrimario))
-                }
+                Text("Tocá para asignar", style = MaterialTheme.typography.bodySmall, color = TextoMuted)
             }
         }
     }
 }
 
-// ═══════════════════════════════════════════════════════════
-// CONSEJO
-// ═══════════════════════════════════════════════════════════
 @Composable
 private fun ConsejoCard(consejo: String, modifier: Modifier = Modifier) {
     Card(
@@ -303,7 +289,6 @@ private fun IpcPulseDot() {
     Box(Modifier.size(7.dp).clip(CircleShape).background(VerdePrimario.copy(alpha = a)))
 }
 
-// Funciones internas — usadas por HomeScreen y EditarCategoriaDialog
 internal fun fmtAR(v: Double): String = String.format("%,.0f", v).replace(",", ".")
 internal fun nombreDisplay(cat: String): String = when (cat.lowercase()) {
     "supermercado" -> "Comida"; "comida/salidas" -> "Salidas"; "varios" -> "Varios"

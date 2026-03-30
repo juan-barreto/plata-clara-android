@@ -154,7 +154,7 @@ class HomeViewModel(private val context: Context) : ViewModel() {
 
             val categoriasConocidas = listOf("supermercado", "transporte", "comida/salidas", "servicios", "salud")
             val gastosVarios = gastosPorCategoria.filter { it.key !in categoriasConocidas }.values.sum()
-            val presupuestoPorCat = if (totalIngresos > 0) totalIngresos / 6 else 0.0
+            val presupuestoPorCat = 0.0
 
             val categorias = (categoriasConocidas + "varios").map { cat ->
                 CategoriaResumen(
