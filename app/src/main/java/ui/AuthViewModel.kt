@@ -11,6 +11,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.candlelabs.gestionpersonal.model.MovimientoRequest
 import com.candlelabs.gestionpersonal.network.RetrofitClient
 import com.candlelabs.gestionpersonal.network.SupabaseClient
+import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
@@ -28,6 +29,7 @@ sealed class AuthUiState {
     object EmailConfirmacionPendiente : AuthUiState()
     object RegistroExitoso : AuthUiState()
     object ResetEnviado : AuthUiState()
+    object PasswordActualizado : AuthUiState() // nuevo estado — contraseña cambiada con éxito
     data class Error(val mensaje: String) : AuthUiState()
 }
 
@@ -131,7 +133,43 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                 supabase.auth.resetPasswordForEmail(email)
                 _uiState.value = AuthUiState.ResetEnviado
             } catch (e: Exception) {
-                _uiState.value = AuthUiState.Error(e.message ?: "Error al enviar el mail de recuperación")
+                _uiState.value = AuthUiState.Error(
+                    when {
+                        e.message?.contains("rate_limit") == true -> "Demasiados intentos. Esperá unos minutos."
+                        else -> "Error al enviar el mail de recuperación"
+                    }
+                )
+            }
+        }
+    }
+
+    // Recibe el token del deep link y la nueva contraseña del usuario
+    // 1. Verifica el token con Supabase (crea una sesión temporal)
+    // 2. Actualiza la contraseña con esa sesión
+    // 3. Emite PasswordActualizado para que la pantalla navegue al login
+    fun actualizarPassword(tokenHash: String, type: String, nuevaPassword: String) {
+
+        viewModelScope.launch {
+            _uiState.value = AuthUiState.Cargando
+            try {
+                // Primero verificamos el OTP para obtener sesión
+                supabase.auth.verifyEmailOtp(
+                    type = OtpType.Email.RECOVERY,
+                    tokenHash = tokenHash
+                )
+                // Con sesión activa actualizamos la contraseña
+                supabase.auth.updateUser {
+                    password = nuevaPassword
+                }
+                supabase.auth.signOut()
+                _uiState.value = AuthUiState.PasswordActualizado
+            } catch (e: Exception) {
+                _uiState.value = AuthUiState.Error(
+                    when {
+                        e.message?.contains("expired") == true -> "El link expiró. Pedí uno nuevo."
+                        else -> e.message ?: "Error al actualizar la contraseña"
+                    }
+                )
             }
         }
     }
@@ -158,8 +196,6 @@ class AuthViewModel(private val context: Context) : ViewModel() {
     fun resetEstado() { _uiState.value = AuthUiState.Idle }
     fun completarSetup() { _uiState.value = AuthUiState.Exito }
 
-    // Guarda el ingreso base del onboarding en Supabase como movimiento real
-    // Guarda el ingreso base y navega al Home recién cuando termina el INSERT
     fun guardarIngresoBase(tipo: String, monto: Double) {
         viewModelScope.launch {
             try {
@@ -171,14 +207,10 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                         monto = monto
                     )
                 )
-            } catch (_: Exception) {
-                // Si falla igual navegamos — el usuario puede agregarlo desde Presupuesto
-            }
-            completarSetup() // ← se mueve acá adentro
+            } catch (_: Exception) { }
+            completarSetup()
         }
     }
-
-
 
     companion object {
         fun factory(context: Context) = object : ViewModelProvider.Factory {
