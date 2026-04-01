@@ -56,16 +56,25 @@ class AuthViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             _uiState.value = AuthUiState.Cargando
             try {
-                supabase.auth.signUpWith(Email) {
+                val resultado = supabase.auth.signUpWith(Email) {
                     this.email = email
                     this.password = password
                     this.data = buildJsonObject { put("full_name", nombre) }
                 }
-                _uiState.value = AuthUiState.EmailConfirmacionPendiente
+                // identities vacío = email ya existía en Supabase
+                // Supabase no crea duplicados pero tampoco tira error — devuelve identities=[]
+                if (resultado?.identities?.isEmpty() == true) {
+                    _uiState.value = AuthUiState.Error(
+                        "Este email ya tiene una cuenta. Iniciá sesión o recuperá tu contraseña."
+                    )
+                } else {
+                    _uiState.value = AuthUiState.EmailConfirmacionPendiente
+                }
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Error(
                     when {
-                        e.message?.contains("already registered") == true -> "Este email ya está registrado"
+                        e.message?.contains("already registered") == true ->
+                            "Este email ya tiene una cuenta. Iniciá sesión o recuperá tu contraseña."
                         e.message?.contains("invalid") == true -> "Email o contraseña inválidos"
                         e.message?.contains("least 6") == true -> "La contraseña debe tener al menos 6 caracteres"
                         e.message?.contains("rate_limit") == true -> "Demasiados intentos. Esperá unos minutos."
@@ -75,7 +84,6 @@ class AuthViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
-
     fun loginConEmail(email: String, password: String) {
         viewModelScope.launch {
             _uiState.value = AuthUiState.Cargando
