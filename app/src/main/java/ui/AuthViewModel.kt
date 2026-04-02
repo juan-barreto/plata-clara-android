@@ -59,7 +59,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                 val resultado = supabase.auth.signUpWith(Email) {
                     this.email = email
                     this.password = password
-                    this.data = buildJsonObject { put("full_name", nombre) }
+                    this.data = buildJsonObject { put("full_name", nombre.trim().replaceFirstChar { it.uppercase() }) }
                 }
                 // identities vacío = email ya existía en Supabase
                 // Supabase no crea duplicados pero tampoco tira error — devuelve identities=[]
