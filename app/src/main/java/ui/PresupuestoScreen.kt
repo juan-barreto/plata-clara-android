@@ -1,5 +1,6 @@
 package com.candlelabs.gestionpersonal.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +22,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -30,11 +33,14 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.imePadding
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.candlelabs.gestionpersonal.R
 import com.candlelabs.gestionpersonal.model.MovimientoItem
 import com.candlelabs.gestionpersonal.ui.theme.*
 
-// ── Categorías ──
+// ── Categorías de ingreso — sincronizadas con AuthScreen ──
 val CATEGORIAS_INGRESO = listOf("Sueldo", "Freelance", "Negocio propio", "Changas", "Jubilación", "Otro ingreso")
+
+// ── Categorías de gasto ──
 val CATEGORIAS_GASTO = listOf(
     "Alquiler", "Supermercado", "Transporte", "Servicios", "Comida/Salidas",
     "Salud", "Tecnología", "Educación", "Entretenimiento", "Deudas/Cuotas", "Otro gasto"
@@ -189,7 +195,7 @@ fun PresupuestoScreen() {
         }
     }
 
-    // Limpiar mensaje export
+    // Limpiar mensaje export después de 3 segundos
     mensajeExport?.let { LaunchedEffect(it) { kotlinx.coroutines.delay(3000); viewModel.limpiarMensajeExport() } }
 
     // ── Contenido principal con Pull to Refresh ──
@@ -421,7 +427,6 @@ fun PresupuestoScreen() {
     }
 }
 
-
 // ═══════════════════════════════════════════════════════════
 // RESUMEN ITEM — columna de Ingresos/Gastos/Balance
 // ═══════════════════════════════════════════════════════════
@@ -439,13 +444,18 @@ private fun ResumenItem(label: String, valor: Double, color: Color) {
     }
 }
 
-
 // ═══════════════════════════════════════════════════════════
-// FILA MOVIMIENTO — card negra con ícono, monto, acciones
+// FILA MOVIMIENTO — card con ícono de categoría, info y monto
 // ═══════════════════════════════════════════════════════════
 @Composable
 fun FilaMovimiento(movimiento: MovimientoItem, onEditar: () -> Unit, onBorrar: () -> Unit) {
     val esIngreso = movimiento.tipo == "ingreso"
+
+    // Detecta si el movimiento vino de Gasto Express
+    // Gasto Express siempre guarda "Gasto rápido" como descripción
+    val esGastoExpress = movimiento.descripcion?.trim() == "Gasto rápido"
+
+    // Ícono de Material Design según la categoría — siempre se muestra en el círculo
     val icono = ICONOS_CATEGORIA[movimiento.categoria] ?: Icons.Rounded.MoreHoriz
 
     Card(
@@ -459,27 +469,65 @@ fun FilaMovimiento(movimiento: MovimientoItem, onEditar: () -> Unit, onBorrar: (
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Ícono circular
+            // ── Ícono circular — siempre muestra el ícono de la categoría ──
             Surface(
                 shape = CircleShape,
                 color = if (esIngreso) VerdePrimario.copy(alpha = 0.15f) else TextoSecundario.copy(alpha = 0.1f),
                 modifier = Modifier.size(40.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(icono, movimiento.categoria, tint = if (esIngreso) VerdePrimario else TextoMuted, modifier = Modifier.size(20.dp))
+                    Icon(
+                        icono,
+                        contentDescription = movimiento.categoria,
+                        tint = if (esIngreso) VerdePrimario else TextoMuted,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
-            // Info
+            // ── Info — categoría, descripción y fecha ──
             Column(Modifier.weight(1f)) {
-                Text(movimiento.categoria, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = TextoPrimario)
+                // Nombre de la categoría — siempre visible
+                Text(
+                    movimiento.categoria,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = TextoPrimario
+                )
+
+                // Descripción — si es Gasto Express muestra el logo PNG,
+                // si no muestra el texto normal de la descripción
                 if (!movimiento.descripcion.isNullOrBlank()) {
-                    Text(movimiento.descripcion, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                    if (esGastoExpress) {
+                        // PNG del logo de Gasto Express en vez del texto "Gasto rápido"
+                        Image(
+                            painter = painterResource(id = R.drawable.gasto_express2),
+                            contentDescription = "Gasto Express",
+                            modifier = Modifier
+                                .height(14.dp)
+                                .padding(bottom = 2.dp)
+                                .wrapContentWidth(),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        // Descripción libre escrita por el usuario
+                        Text(
+                            movimiento.descripcion,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextoSecundario
+                        )
+                    }
                 }
-                Text(movimiento.fecha.substring(0, 10), style = MaterialTheme.typography.labelSmall, color = TextoMuted)
+
+                // Fecha del movimiento
+                Text(
+                    movimiento.fecha.substring(0, 10),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextoMuted
+                )
             }
 
-            // Monto
+            // ── Monto — verde si ingreso, rojo si gasto ──
             Text(
                 "${if (esIngreso) "+" else "-"}$${String.format("%,.0f", movimiento.monto).replace(",", ".")}",
                 style = MaterialTheme.typography.titleSmall,
@@ -487,7 +535,7 @@ fun FilaMovimiento(movimiento: MovimientoItem, onEditar: () -> Unit, onBorrar: (
                 color = if (esIngreso) VerdePrimario else RojoGasto
             )
 
-            // Acciones
+            // ── Acciones — editar y borrar ──
             Column {
                 IconButton(onClick = onEditar, modifier = Modifier.size(28.dp)) {
                     Icon(Icons.Rounded.Edit, "Editar", tint = VerdePrimario, modifier = Modifier.size(16.dp))
@@ -500,9 +548,8 @@ fun FilaMovimiento(movimiento: MovimientoItem, onEditar: () -> Unit, onBorrar: (
     }
 }
 
-
 // ═══════════════════════════════════════════════════════════
-// FORMULARIO — Dialog para agregar/editar (tema oscuro)
+// FORMULARIO — Dialog para agregar/editar movimiento
 // ═══════════════════════════════════════════════════════════
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -550,7 +597,7 @@ fun FormularioMovimiento(
             }
         }
 
-        // Categoría
+        // Dropdown de categoría
         ExposedDropdownMenuBox(expanded = expandirCategorias, onExpandedChange = { expandirCategorias = it }) {
             OutlinedTextField(
                 value = categoria, onValueChange = {}, readOnly = true,
@@ -576,7 +623,7 @@ fun FormularioMovimiento(
             }
         }
 
-        // Descripción
+        // Campo descripción (opcional)
         OutlinedTextField(
             value = descripcion, onValueChange = { descripcion = it },
             label = { Text("Descripción (opcional)", color = TextoSecundario) },
@@ -588,7 +635,7 @@ fun FormularioMovimiento(
             modifier = Modifier.fillMaxWidth(), singleLine = true
         )
 
-        // Monto
+        // Campo monto
         OutlinedTextField(
             value = monto, onValueChange = { monto = it },
             label = { Text("Monto", color = TextoSecundario) },
@@ -602,7 +649,7 @@ fun FormularioMovimiento(
             modifier = Modifier.fillMaxWidth(), singleLine = true
         )
 
-        // Botones
+        // Botones cancelar / guardar
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
                 onClick = onCancelar, modifier = Modifier.weight(1f),

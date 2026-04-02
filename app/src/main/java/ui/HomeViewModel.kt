@@ -79,13 +79,13 @@ class HomeViewModel(private val context: Context) : ViewModel() {
 
             when {
                 // Supabase tiene el nombre
-                !fullName.isNullOrBlank() -> fullName.split(" ").first()
+                !fullName.isNullOrBlank() -> fullName.split(" ").first().replaceFirstChar { it.uppercase() }
                 else -> {
                     // Fallback: SharedPreferences (se guarda al registrar)
                     val prefs = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
                     val nombreLocal = prefs.getString("nombre_usuario", null)
                     when {
-                        !nombreLocal.isNullOrBlank() -> nombreLocal.split(" ").first()
+                        !nombreLocal.isNullOrBlank() -> nombreLocal.split(" ").first().replaceFirstChar { it.uppercase() }
                         user?.email != null -> user.email!!.substringBefore("@")
                         else -> "Usuario"
                     }
