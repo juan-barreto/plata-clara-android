@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import com.candlelabs.gestionpersonal.network.SupabaseClient
 import io.github.jan.supabase.auth.auth
+import androidx.activity.compose.BackHandler
 
 data class ItemNavegacion(val ruta: String, val iconoRes: Int, val etiqueta: String)
 data class ItemMas(val ruta: String, val icono: ImageVector, val titulo: String, val subtitulo: String)
@@ -277,7 +278,7 @@ private fun GastoRapidoOverlay(
     var cat by remember { mutableStateOf<CategoriaGastoRapido?>(null) }
     var confirmado by remember { mutableStateOf(false) }
     val listo = monto.isNotEmpty() && cat != null
-
+    BackHandler { onDismiss() }
     // Pantalla de éxito
     if (confirmado) {
         Box(Modifier.fillMaxSize().background(FondoNegro), contentAlignment = Alignment.Center) {
