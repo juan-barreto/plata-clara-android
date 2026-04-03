@@ -489,7 +489,7 @@ fun FilaMovimiento(movimiento: MovimientoItem, onEditar: () -> Unit, onBorrar: (
             Column(Modifier.weight(1f)) {
                 // Nombre de la categoría — siempre visible
                 Text(
-                    movimiento.categoria,
+                    movimiento.categoria.replaceFirstChar { it.uppercase() },
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = TextoPrimario

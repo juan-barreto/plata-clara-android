@@ -209,8 +209,14 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}) {
                     contentColor = FondoNegro,
                     elevation = FloatingActionButtonDefaults.elevation(8.dp),
                     modifier = Modifier.border(2.dp, FondoNegro, CircleShape)
+                        .padding(end = 2.dp)
                 ) {
-                    Icon(imageVector = Icons.Rounded.AttachMoney, contentDescription = "Gasto Rápido", modifier = Modifier.size(28.dp))
+                    Image(
+                        painter = painterResource(id = R.drawable.x_negra),
+                        contentDescription = "Gasto Express",
+                        modifier = Modifier.size(50.dp),
+                        contentScale = ContentScale.Fit
+                    )
                 }
             }
         }
