@@ -3,12 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!--
-        WRITE_EXTERNAL_STORAGE solo hace falta hasta Android 9 (API 28).
-        Desde Android 10 en adelante el sistema maneja permisos de almacenamiento
-        de forma diferente — por eso el maxSdkVersion="28".
-        Como tu minSdk es 26, lo dejamos para cubrir Android 8 y 9.
-    -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
 
@@ -22,6 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Splash">
 
+        <!-- Activity principal de la app -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -51,15 +46,12 @@
             </intent-filter>
         </activity>
 
-        <!--
-            FileProvider — componente del sistema que convierte rutas de archivo en URIs seguras.
-            Sin esto, si intentás compartir un archivo con otra app usando su ruta directa,
-            Android lanza FileUriExposedException en runtime (desde API 24).
+        <!-- Activity transparente del widget Gasto Express -->
+        <activity
+            android:name=".ui.GastoExpressActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
-            authorities: tiene que ser único en el dispositivo → usamos packageName + ".provider"
-            exported="false": solo nuestra app puede pedirle URIs al FileProvider
-            grantUriPermissions="true": le da permiso TEMPORAL de lectura a la app que recibe el Intent
-        -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.candlelabs.gestionpersonal.provider"
@@ -70,8 +62,19 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <receiver
+            android:name=".ui.GastoExpressWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_gasto_express" />
+        </receiver>
+
     </application>
-    <!-- Limitar a pantallas de celular -->
+
     <supports-screens
         android:smallScreens="true"
         android:normalScreens="true"
@@ -79,8 +82,6 @@
         android:xlargeScreens="false"
         android:anyDensity="true" />
 
-    <!-- Requerir pantalla táctil (excluye Chromebooks sin touch) -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="true" />
-
 
 </manifest>

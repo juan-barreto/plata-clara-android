@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Plata Clara</string>
+    <string name="widget_description">Gasto Express</string>
 </resources>

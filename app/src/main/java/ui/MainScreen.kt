@@ -61,13 +61,14 @@ private val categoriasGastoRapido = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(onCerrarSesion: () -> Unit = {}) {
+fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = false) {
     val navController = rememberNavController()
     var mostrarMenuMas by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     var mostrarCirculoVerde by remember { mutableStateOf(false) }
     var mostrarOverlay by remember { mutableStateOf(false) }
+
     var mostrarFabIcon by remember { mutableStateOf(true) }
     var circuloExpandiendo by remember { mutableStateOf(true) }
     var fabOffsetY by remember { mutableFloatStateOf(0f) }
@@ -96,6 +97,13 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}) {
             delay(400)
             mostrarOverlay = true
             mostrarCirculoVerde = false
+        }
+    }
+    // Si viene del widget, abre Gasto Express automáticamente
+    LaunchedEffect(abrirGastoExpress) {
+        if (abrirGastoExpress) {
+            delay(300)
+            abrirGastoRapido()
         }
     }
 
@@ -208,7 +216,9 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}) {
                     containerColor = VerdePrimario,
                     contentColor = FondoNegro,
                     elevation = FloatingActionButtonDefaults.elevation(8.dp),
-                    modifier = Modifier.border(2.dp, FondoNegro, CircleShape)
+                    modifier = Modifier
+                        .size(61.dp)
+                        .border(2.dp, FondoNegro, CircleShape)
                         .padding(end = 2.dp)
                 ) {
                     Image(
@@ -276,7 +286,7 @@ private fun CirculoExpandible(expandir: Boolean, modifier: Modifier = Modifier) 
 // GASTO RÁPIDO — pantalla completa
 // ═══════════════════════════════════════════════════════════
 @Composable
-private fun GastoRapidoOverlay(
+internal fun GastoRapidoOverlay(
     onDismiss: () -> Unit,
     onConfirmar: (String, Double) -> Unit
 ) {

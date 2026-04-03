@@ -42,7 +42,7 @@ object Rutas {
 }
 
 @Composable
-fun NavGraph(navController: NavHostController) {
+fun NavGraph(navController: NavHostController, abrirGastoExpress: Boolean = false) {
 
     NavHost(
         navController = navController,
@@ -95,7 +95,8 @@ fun NavGraph(navController: NavHostController) {
                     navController.navigate(Rutas.AUTH) {
                         popUpTo(0) { inclusive = true }
                     }
-                }
+                },
+                abrirGastoExpress = abrirGastoExpress
             )
         }
 
