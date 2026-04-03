@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
-    android:layout_width="80dp"
-    android:layout_height="80dp"
-    android:padding="8dp">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent">
 
-    <!-- Círculo verde de fondo -->
+    <!-- Círculo verde — tamaño fijo centrado -->
     <ImageView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="65dp"
+        android:layout_height="65dp"
+        android:layout_gravity="center"
         android:background="@drawable/bg_widget_circle"
         android:contentDescription="Gasto Express" />
-
     <!-- Logo X negra con velocidad -->
     <ImageView
         android:layout_width="50dp"
