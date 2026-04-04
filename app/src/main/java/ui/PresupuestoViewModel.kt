@@ -8,7 +8,6 @@ import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.candlelabs.gestionpersonal.model.MovimientoItem
 import com.candlelabs.gestionpersonal.model.MovimientoRequest
@@ -17,7 +16,10 @@ import com.candlelabs.gestionpersonal.network.RetrofitClient
 import com.candlelabs.gestionpersonal.network.SupabaseClient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
@@ -42,9 +44,17 @@ class PresupuestoViewModel : ViewModel() {
     private val _mensajeExport = MutableStateFlow<String?>(null)
     val mensajeExport: StateFlow<String?> = _mensajeExport
 
-    // Pull to refresh
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
+
+    // Totales derivados — se recalculan solo cuando cambia uiState, no en cada recomposición
+    val totales: StateFlow<Triple<Double, Double, Double>> = uiState.map { estado ->
+        if (estado is PresupuestoUiState.Exito) {
+            val ingresos = estado.movimientos.filter { it.tipo == "ingreso" }.sumOf { it.monto }
+            val gastos = estado.movimientos.filter { it.tipo == "gasto" }.sumOf { it.monto }
+            Triple(ingresos, gastos, ingresos - gastos)
+        } else Triple(0.0, 0.0, 0.0)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), Triple(0.0, 0.0, 0.0))
 
     init { cargarMovimientos() }
 
@@ -60,7 +70,6 @@ class PresupuestoViewModel : ViewModel() {
         }
     }
 
-    // Pull to refresh — no muestra loading de pantalla completa
     fun recargar() {
         viewModelScope.launch {
             _isRefreshing.value = true
@@ -95,7 +104,9 @@ class PresupuestoViewModel : ViewModel() {
     fun editarMovimiento(id: String, tipo: String, categoria: String, descripcion: String, monto: Double) {
         viewModelScope.launch {
             try {
-                RetrofitClient.create(SupabaseClient.instance).editarMovimiento(id, MovimientoEditRequest(tipo, categoria, descripcion, monto))
+                RetrofitClient.create(SupabaseClient.instance).editarMovimiento(
+                    id, MovimientoEditRequest(tipo, categoria, descripcion, monto)
+                )
                 cargarMovimientos()
             } catch (e: Exception) {
                 _uiState.value = PresupuestoUiState.Error(e.message ?: "Error al editar")
@@ -114,7 +125,6 @@ class PresupuestoViewModel : ViewModel() {
         }
     }
 
-    // Reset — borra TODOS los movimientos
     fun resetMovimientos() {
         viewModelScope.launch {
             try {
@@ -126,22 +136,12 @@ class PresupuestoViewModel : ViewModel() {
         }
     }
 
-    fun calcularTotalIngresos(movimientos: List<MovimientoItem>): Double =
-        movimientos.filter { it.tipo == "ingreso" }.sumOf { it.monto }
-
-    fun calcularTotalGastos(movimientos: List<MovimientoItem>): Double =
-        movimientos.filter { it.tipo == "gasto" }.sumOf { it.monto }
-
-    fun calcularBalance(movimientos: List<MovimientoItem>): Double =
-        calcularTotalIngresos(movimientos) - calcularTotalGastos(movimientos)
-
     fun calcularPorCategoria(movimientos: List<MovimientoItem>): Map<String, Double> =
         movimientos
             .filter { it.tipo == "gasto" }
             .groupBy { it.categoria }
             .mapValues { (_, items) -> items.sumOf { it.monto } }
 
-    // Exportación Excel
     fun exportarExcel(context: Context, filtro: String) {
         viewModelScope.launch {
             _exportando.value = true

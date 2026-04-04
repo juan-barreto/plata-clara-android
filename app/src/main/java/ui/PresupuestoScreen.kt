@@ -76,7 +76,7 @@ fun PresupuestoScreen() {
     val exportando by viewModel.exportando.collectAsState()
     val mensajeExport by viewModel.mensajeExport.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
-
+    val totales: Triple<Double, Double, Double> by viewModel.totales.collectAsState()
     var mostrarBottomSheet by remember { mutableStateOf(false) }
     var movimientoEditando by remember { mutableStateOf<MovimientoItem?>(null) }
     var mostrarConfirmBorrado by remember { mutableStateOf(false) }
@@ -275,9 +275,7 @@ fun PresupuestoScreen() {
                 }
                 is PresupuestoUiState.Exito -> {
                     val movimientos = estado.movimientos
-                    val ingresos = viewModel.calcularTotalIngresos(movimientos)
-                    val gastos = viewModel.calcularTotalGastos(movimientos)
-                    val balance = viewModel.calcularBalance(movimientos)
+                    val (ingresos, gastos, balance) = totales
 
                     // ── RESUMEN ──
                     item {

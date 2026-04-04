@@ -36,7 +36,7 @@ class GastoExpressActivity : ComponentActivity() {
                 var mostrarOverlay by remember { mutableStateOf(false) }
 
                 LaunchedEffect(Unit) {
-                    delay(250)
+                    delay(400)
                     mostrarOverlay = true
                     mostrarCirculo = false
                 }
@@ -49,13 +49,11 @@ class GastoExpressActivity : ComponentActivity() {
                             onConfirmar = { catBackend, monto ->
                                 lifecycleScope.launch {
                                     try {
-                                        // Restauramos sesión antes del request
                                         SupabaseClient.instance.auth.awaitInitialization()
                                         RetrofitClient.create(SupabaseClient.instance).agregarMovimiento(
                                             MovimientoRequest("gasto", catBackend, "Gasto rápido", monto)
                                         )
                                     } catch (_: Exception) {}
-                                    // finish() solo — Android vuelve a lo que había atrás
                                     finish()
                                 }
                             }
