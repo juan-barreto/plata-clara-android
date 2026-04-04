@@ -23,6 +23,7 @@ import com.candlelabs.gestionpersonal.network.SupabaseClient
 import com.candlelabs.gestionpersonal.ui.theme.GestionPersonalARGTheme
 import com.candlelabs.gestionpersonal.ui.theme.VerdePrimario
 import com.candlelabs.gestionpersonal.ui.theme.FondoNegro
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -52,6 +53,9 @@ class GastoExpressActivity : ComponentActivity() {
                             onConfirmar = { catBackend, monto ->
                                 lifecycleScope.launch {
                                     try {
+                                        // Restauramos la sesión antes de hacer el request
+                                        // Sin esto, el token es null cuando la app estaba cerrada
+                                        SupabaseClient.instance.auth.awaitInitialization()
                                         RetrofitClient.create(SupabaseClient.instance).agregarMovimiento(
                                             MovimientoRequest("gasto", catBackend, "Gasto rápido", monto)
                                         )
@@ -87,7 +91,7 @@ private fun CirculoExpandiendose(modifier: Modifier = Modifier) {
     LaunchedEffect(Unit) {
         scale.animateTo(
             targetValue = 30f,
-            animationSpec = tween(400, easing = FastOutSlowInEasing)
+            animationSpec = tween(250, easing = FastOutSlowInEasing)
         )
     }
     Box(

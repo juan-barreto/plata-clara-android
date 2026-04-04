@@ -224,7 +224,7 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                     Image(
                         painter = painterResource(id = R.drawable.x_negra),
                         contentDescription = "Gasto Express",
-                        modifier = Modifier.size(50.dp),
+                        modifier = Modifier.size(45.dp),
                         contentScale = ContentScale.Fit
                     )
                 }
