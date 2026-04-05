@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -75,6 +74,8 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
     var mostrarFabGastoExpress by remember { mutableStateOf(false) }
     var circuloExpandiendo by remember { mutableStateOf(true) }
     var fabYPosition by remember { mutableFloatStateOf(0f) }
+    // fabSaliendo — controla animación de salida del FAB
+    var fabSaliendo by remember { mutableStateOf(false) }
 
     val itemsIzquierda = listOf(
         ItemNavegacion(Rutas.HOME, R.drawable.icon_home, "Inicio"),
@@ -95,6 +96,7 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
 
     fun abrirGastoRapido() {
         mostrarFabGastoExpress = false
+        fabSaliendo = false
         circuloExpandiendo = true
         mostrarCirculoVerde = true
         scope.launch {
@@ -266,25 +268,23 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                 .pointerInput(rutaActual) {
                     awaitPointerEventScope {
                         while (true) {
-                            // Esperamos el primer toque
                             awaitPointerEvent().changes.first { it.changedToDown() }
                             val startTime = System.currentTimeMillis()
                             var isLongPress = false
                             var totalDragY = 0f
                             var released = false
 
-                            // Bucle de eventos mientras el dedo esté abajo
                             while (!released) {
                                 val event = withTimeoutOrNull(500L - (System.currentTimeMillis() - startTime)) {
                                     awaitPointerEvent()
                                 }
 
                                 if (event == null) {
-                                    // Timeout → long press confirmado
+                                    // Long press confirmado
                                     isLongPress = true
                                     mostrarFabGastoExpress = true
+                                    fabSaliendo = false
 
-                                    // Seguimos leyendo el drag hasta que suelte
                                     var dragging = true
                                     while (dragging) {
                                         val dragEvent = awaitPointerEvent()
@@ -293,12 +293,12 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                                         if (!change.pressed) {
                                             dragging = false
                                             released = true
-                                            // Si arrastró suficiente hacia arriba → abre Gasto Express
                                             if (totalDragY < -60f) {
+                                                // Arrastró suficiente → abre Gasto Express
                                                 abrirGastoRapido()
                                             } else {
-                                                // Canceló → cierra el FAB
-                                                mostrarFabGastoExpress = false
+                                                // Canceló → baja el FAB con animación
+                                                fabSaliendo = true
                                             }
                                         } else {
                                             totalDragY += change.position.y - change.previousPosition.y
@@ -307,12 +307,14 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                                 } else {
                                     val change = event.changes.firstOrNull() ?: break
                                     if (!change.pressed) {
-                                        // Soltó antes del long press → es tap
                                         released = true
-                                        if (rutaActual == Rutas.ASISTENTE) {
-                                            navController.popBackStack()
-                                        } else {
-                                            navController.navigate(Rutas.ASISTENTE) { launchSingleTop = true }
+                                        // Solo navega si fue tap (no long press)
+                                        if (!isLongPress) {
+                                            if (rutaActual == Rutas.ASISTENTE) {
+                                                navController.popBackStack()
+                                            } else {
+                                                navController.navigate(Rutas.ASISTENTE) { launchSingleTop = true }
+                                            }
                                         }
                                     } else {
                                         totalDragY += change.position.y - change.previousPosition.y
@@ -341,17 +343,27 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
             }
         }
 
-        // ── FAB Gasto Express — aparece con slide al hacer long press ─
-        if (mostrarFabGastoExpress) {
-            val fabVisible = remember { Animatable(80f) }
-            LaunchedEffect(Unit) {
-                fabVisible.animateTo(0f, animationSpec = tween(250, easing = FastOutSlowInEasing))
+        // ── FAB Gasto Express — sube al aparecer, baja al cancelar ───
+        if (mostrarFabGastoExpress || fabSaliendo) {
+            val fabOffset = remember { Animatable(80f) }
+
+            LaunchedEffect(fabSaliendo) {
+                if (!fabSaliendo) {
+                    // Entrada — sube
+                    fabOffset.animateTo(0f, animationSpec = tween(250, easing = FastOutSlowInEasing))
+                } else {
+                    // Salida — baja y desaparece
+                    fabOffset.animateTo(80f, animationSpec = tween(200, easing = FastOutSlowInEasing))
+                    mostrarFabGastoExpress = false
+                    fabSaliendo = false
+                }
             }
+
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 120.dp)
-                    .offset { IntOffset(0, fabVisible.value.roundToInt()) }
+                    .offset { IntOffset(0, fabOffset.value.roundToInt()) }
                     .onGloballyPositioned { coords -> fabYPosition = coords.positionInRoot().y }
             ) {
                 FloatingActionButton(
