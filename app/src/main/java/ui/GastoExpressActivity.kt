@@ -63,8 +63,8 @@ class GastoExpressActivity : ComponentActivity() {
                     if (mostrarCirculo) {
                         CirculoExpandiendose(
                             modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(end = 20.dp, bottom = 84.dp)
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 120.dp) // mismo que Clara
                         )
                     }
                 }
