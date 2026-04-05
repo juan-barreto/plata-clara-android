@@ -5,7 +5,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -23,6 +22,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -44,6 +44,7 @@ import com.candlelabs.gestionpersonal.network.RetrofitClient
 import com.candlelabs.gestionpersonal.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.roundToInt
 import com.candlelabs.gestionpersonal.network.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -152,8 +153,6 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
             containerColor = FondoNegro,
             modifier = Modifier.systemBarsPadding(),
             bottomBar = {
-                // ── NAVBAR — limpio, sin Clara adentro ──────────────
-                // Clara vive fuera del Scaffold para no deformarse
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -175,7 +174,6 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Ítems izquierda
                         itemsIzquierda.forEach { item ->
                             val sel = rutaActual == item.ruta
                             Column(
@@ -185,14 +183,12 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                             ) {
                                 Icon(painter = painterResource(item.iconoRes), contentDescription = item.etiqueta, modifier = Modifier.size(24.dp).offset(y = 4.dp), tint = if (sel) VerdePrimario else Color(0xFF444444))
                                 Spacer(Modifier.height(2.dp))
-                                Text(item.etiqueta, style = MaterialTheme.typography.labelSmall, color = if (sel) VerdePrimario else Color(0xFF444444),modifier = Modifier.offset(y = 4.dp))
+                                Text(item.etiqueta, style = MaterialTheme.typography.labelSmall, color = if (sel) VerdePrimario else Color(0xFF444444), modifier = Modifier.offset(y = 4.dp))
                             }
                         }
 
-                        // Espacio central — donde flota Clara
                         Spacer(Modifier.weight(1f))
 
-                        // Ítems derecha
                         itemsDerecha.forEach { item ->
                             val sel = rutaActual == item.ruta
                             Column(
@@ -202,11 +198,10 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                             ) {
                                 Icon(painter = painterResource(item.iconoRes), contentDescription = item.etiqueta, modifier = Modifier.size(24.dp).offset(y = 4.dp), tint = if (sel) VerdePrimario else Color(0xFF444444))
                                 Spacer(Modifier.height(2.dp))
-                                Text(item.etiqueta, style = MaterialTheme.typography.labelSmall, color = if (sel) VerdePrimario else Color(0xFF444444),modifier = Modifier.offset(y = 4.dp))
+                                Text(item.etiqueta, style = MaterialTheme.typography.labelSmall, color = if (sel) VerdePrimario else Color(0xFF444444), modifier = Modifier.offset(y = 4.dp))
                             }
                         }
 
-                        // Más
                         val masSel = rutaActual in listOf(Rutas.PRESUPUESTO, Rutas.HISTORIAL, Rutas.INFO, Rutas.PERFIL)
                         Column(
                             modifier = Modifier.weight(1f).clickable { mostrarMenuMas = true },
@@ -247,26 +242,18 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
             }
         }
 
-        // ── CLARA — flota libre sobre el navbar, centrada ────────────
-        // Vive fuera del Scaffold para no ser recortada por el bottomBar
+        // ── CLARA — flota libre, animación de pulso + scale ──────────
         val pulso = rememberInfiniteTransition(label = "pulso")
         val alpha by pulso.animateFloat(
             initialValue = 0.3f,
             targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(2000, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
+            animationSpec = infiniteRepeatable(tween(2000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
             label = "alpha"
         )
-        // Scale leve sincronizado — Clara "respira"
         val claraScale by pulso.animateFloat(
             initialValue = 1f,
             targetValue = 1.04f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(2000, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
+            animationSpec = infiniteRepeatable(tween(2000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
             label = "scale"
         )
 
@@ -276,19 +263,64 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                 .padding(bottom = 20.dp)
                 .size(80.dp)
                 .graphicsLayer { scaleX = claraScale; scaleY = claraScale }
-                .pointerInput(mostrarFabGastoExpress, rutaActual) {
-                    detectTapGestures(
-                        onTap = {
-                            if (rutaActual == Rutas.ASISTENTE) {
-                                navController.popBackStack()
-                            } else {
-                                navController.navigate(Rutas.ASISTENTE) { launchSingleTop = true }
+                .pointerInput(rutaActual) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            // Esperamos el primer toque
+                            awaitPointerEvent().changes.first { it.changedToDown() }
+                            val startTime = System.currentTimeMillis()
+                            var isLongPress = false
+                            var totalDragY = 0f
+                            var released = false
+
+                            // Bucle de eventos mientras el dedo esté abajo
+                            while (!released) {
+                                val event = withTimeoutOrNull(500L - (System.currentTimeMillis() - startTime)) {
+                                    awaitPointerEvent()
+                                }
+
+                                if (event == null) {
+                                    // Timeout → long press confirmado
+                                    isLongPress = true
+                                    mostrarFabGastoExpress = true
+
+                                    // Seguimos leyendo el drag hasta que suelte
+                                    var dragging = true
+                                    while (dragging) {
+                                        val dragEvent = awaitPointerEvent()
+                                        val change = dragEvent.changes.firstOrNull() ?: break
+                                        change.consume()
+                                        if (!change.pressed) {
+                                            dragging = false
+                                            released = true
+                                            // Si arrastró suficiente hacia arriba → abre Gasto Express
+                                            if (totalDragY < -60f) {
+                                                abrirGastoRapido()
+                                            } else {
+                                                // Canceló → cierra el FAB
+                                                mostrarFabGastoExpress = false
+                                            }
+                                        } else {
+                                            totalDragY += change.position.y - change.previousPosition.y
+                                        }
+                                    }
+                                } else {
+                                    val change = event.changes.firstOrNull() ?: break
+                                    if (!change.pressed) {
+                                        // Soltó antes del long press → es tap
+                                        released = true
+                                        if (rutaActual == Rutas.ASISTENTE) {
+                                            navController.popBackStack()
+                                        } else {
+                                            navController.navigate(Rutas.ASISTENTE) { launchSingleTop = true }
+                                        }
+                                    } else {
+                                        totalDragY += change.position.y - change.previousPosition.y
+                                    }
+                                }
                             }
-                        },
-                        onLongPress = {
-                            mostrarFabGastoExpress = true
                         }
-                    )
+                    }
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -303,13 +335,13 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                 Image(
                     painter = painterResource(id = R.drawable.simple_clara),
                     contentDescription = "Clara",
-                    modifier = Modifier.size(45.dp)
-                        .padding(end = 5.dp),
+                    modifier = Modifier.size(45.dp).padding(end = 5.dp),
                     contentScale = ContentScale.Fit
                 )
             }
         }
-        // ── FAB Gasto Express — slide desde abajo al arrastrar Clara ─
+
+        // ── FAB Gasto Express — aparece con slide al hacer long press ─
         if (mostrarFabGastoExpress) {
             val fabVisible = remember { Animatable(80f) }
             LaunchedEffect(Unit) {
