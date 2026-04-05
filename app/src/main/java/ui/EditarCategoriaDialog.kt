@@ -170,7 +170,7 @@ fun EditarCategoriaDialog(
                         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Icon(Icons.Rounded.ErrorOutline, null, tint = RojoGasto, modifier = Modifier.size(16.dp))
-                            Text("Este monto supera tu ingreso", color = RojoGasto, style = MaterialTheme.typography.bodySmall)
+                            Text("Superás tu ingreso total por $${fmtAR(montoDouble - totalIngresos)}", color = RojoGasto, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 } else if (excede) {
@@ -179,7 +179,7 @@ fun EditarCategoriaDialog(
                         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Icon(Icons.Rounded.Warning, null, tint = Naranja, modifier = Modifier.size(16.dp))
-                            Text("Este monto supera tu dinero disponible", color = Naranja, style = MaterialTheme.typography.bodySmall)
+                            Text("Superás el disponible para esta categoría en $${fmtAR(montoDouble - disponibleParaEsta)}", color = Naranja, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }

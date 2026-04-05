@@ -34,8 +34,11 @@ class GastoExpressActivity : ComponentActivity() {
 
                 var mostrarCirculo by remember { mutableStateOf(true) }
                 var mostrarOverlay by remember { mutableStateOf(false) }
+                // true = expandiendo al abrir, false = contrayendo al cerrar
+                var expandiendo by remember { mutableStateOf(true) }
 
                 LaunchedEffect(Unit) {
+                    // Abre: círculo crece y desaparece, aparece overlay
                     delay(400)
                     mostrarOverlay = true
                     mostrarCirculo = false
@@ -48,12 +51,19 @@ class GastoExpressActivity : ComponentActivity() {
                             onDismiss = { finish() },
                             onConfirmar = { catBackend, monto ->
                                 lifecycleScope.launch {
+                                    // Guardamos el gasto
                                     try {
                                         SupabaseClient.instance.auth.awaitInitialization()
                                         RetrofitClient.create(SupabaseClient.instance).agregarMovimiento(
                                             MovimientoRequest("gasto", catBackend, "Gasto rápido", monto)
                                         )
                                     } catch (_: Exception) {}
+
+                                    // Animación de cierre — círculo se contrae de vuelta al centro
+                                    mostrarOverlay = false
+                                    expandiendo = false
+                                    mostrarCirculo = true
+                                    delay(350) // tiempo que dura la animación de contracción
                                     finish()
                                 }
                             }
@@ -62,9 +72,10 @@ class GastoExpressActivity : ComponentActivity() {
 
                     if (mostrarCirculo) {
                         CirculoExpandiendose(
+                            expandir = expandiendo,
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
-                                .padding(bottom = 120.dp) // mismo que Clara
+                                .padding(bottom = 20.dp) // alineado con Clara
                         )
                     }
                 }
@@ -74,14 +85,20 @@ class GastoExpressActivity : ComponentActivity() {
 }
 
 @Composable
-private fun CirculoExpandiendose(modifier: Modifier = Modifier) {
-    val scale = remember { Animatable(1f) }
-    LaunchedEffect(Unit) {
+private fun CirculoExpandiendose(
+    expandir: Boolean,
+    modifier: Modifier = Modifier
+) {
+    // Si expande: arranca chico y crece. Si contrae: arranca grande y achica.
+    val scale = remember { Animatable(if (expandir) 1f else 30f) }
+
+    LaunchedEffect(expandir) {
         scale.animateTo(
-            targetValue = 30f,
-            animationSpec = tween(250, easing = FastOutSlowInEasing)
+            targetValue = if (expandir) 30f else 1f,
+            animationSpec = tween(if (expandir) 250 else 350, easing = FastOutSlowInEasing)
         )
     }
+
     Box(
         modifier = modifier
             .size(60.dp)
