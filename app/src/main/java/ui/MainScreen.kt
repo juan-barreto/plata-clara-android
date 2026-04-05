@@ -276,17 +276,18 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                 .padding(bottom = 20.dp)
                 .size(80.dp)
                 .graphicsLayer { scaleX = claraScale; scaleY = claraScale }
-                .pointerInput(mostrarFabGastoExpress) {
-                    detectDragGestures(
-                        onDragStart = { mostrarFabGastoExpress = true },
-                        onDragEnd = { if (mostrarFabGastoExpress) abrirGastoRapido() },
-                        onDragCancel = { mostrarFabGastoExpress = false },
-                        onDrag = { _, _ -> }
-                    )
-                }
-                .pointerInput(Unit) {
+                .pointerInput(mostrarFabGastoExpress, rutaActual) {
                     detectTapGestures(
-                        onTap = { navController.navigate(Rutas.ASISTENTE) { launchSingleTop = true } }
+                        onTap = {
+                            if (rutaActual == Rutas.ASISTENTE) {
+                                navController.popBackStack()
+                            } else {
+                                navController.navigate(Rutas.ASISTENTE) { launchSingleTop = true }
+                            }
+                        },
+                        onLongPress = {
+                            mostrarFabGastoExpress = true
+                        }
                     )
                 },
             contentAlignment = Alignment.Center
@@ -308,7 +309,6 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                 )
             }
         }
-
         // ── FAB Gasto Express — slide desde abajo al arrastrar Clara ─
         if (mostrarFabGastoExpress) {
             val fabVisible = remember { Animatable(80f) }

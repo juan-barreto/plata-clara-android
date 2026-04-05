@@ -159,7 +159,8 @@ fun AsistenteScreen() {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.White)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(bottom = 40.dp), // ← espacio para Clara,
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
