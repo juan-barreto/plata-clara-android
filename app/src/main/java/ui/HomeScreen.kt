@@ -40,10 +40,9 @@ import io.github.jan.supabase.auth.auth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController, viewModel: HomeViewModel) {
 
     val context = LocalContext.current
-    val viewModel: HomeViewModel = viewModel(factory = HomeViewModel.factory(context))
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
 
@@ -68,12 +67,28 @@ fun HomeScreen(navController: NavController) {
 
         // ── Estado exitoso — contenido principal ─────────────────────
         is HomeUiState.Exito -> {
+
             val datos = uiState as HomeUiState.Exito
             val visible by viewModel.balanceVisible.collectAsState()
 
             // userId para aislar SharedPreferences por usuario (evita datos fantasma entre cuentas)
             val userId = SupabaseClient.instance.auth.currentUserOrNull()?.id ?: "anonimo"
 
+            var mostrarDialogIngreso by remember { mutableStateOf(false) }
+
+            if (mostrarDialogIngreso) {
+                EditarIngresoDialog(
+                    ingresoActual = datos.totalIngresos,
+                    onGuardar = { nuevoMonto ->
+                        viewModel.editarIngresoBase(
+                            nuevoMonto = nuevoMonto,
+                            onExito    = { mostrarDialogIngreso = false },
+                            onError    = { mostrarDialogIngreso = false }
+                        )
+                    },
+                    onDismiss = { mostrarDialogIngreso = false }
+                )
+            }
             // ── Dialog para editar presupuesto de una categoría ──────
             categoriaEditando?.let { cat ->
                 val presupuestosOtras = datos.categorias
@@ -165,7 +180,9 @@ fun HomeScreen(navController: NavController) {
                             onToggle = { viewModel.toggleBalanceVisible() },
                             ipcUltimo = datos.ipcUltimo,
                             ipcAnterior = datos.ipcAnterior,
-                            modifier = Modifier.offset(y = (-40).dp)
+                            modifier = Modifier.offset(y = (-40).dp),
+                            onClick = { mostrarDialogIngreso = true }
+
                         )
 
                         // ── Cards de presupuesto por categoría ───────────────
@@ -227,6 +244,7 @@ private fun HeroCard(
     onToggle: () -> Unit,
     ipcUltimo: String?,
     ipcAnterior: String?,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -237,7 +255,9 @@ private fun HeroCard(
         colors = CardDefaults.cardColors(containerColor = FondoCard),
         border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
     ) {
-        Column(Modifier.fillMaxWidth().padding(20.dp)) {
+        Column(Modifier.fillMaxWidth()
+            .clickable { onClick() }
+            .padding(20.dp)) {
 
             // Título + botón ocultar
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
@@ -448,4 +468,56 @@ internal fun iconoPara(cat: String): ImageVector = when (cat.lowercase()) {
     "salud" -> Icons.Rounded.LocalPharmacy
     "varios" -> Icons.Rounded.FolderOpen
     else -> Icons.Rounded.MoreHoriz
+}
+@Composable
+private fun EditarIngresoDialog(
+    ingresoActual: Double,
+    onGuardar: (Double) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var texto by remember { mutableStateOf(ingresoActual.toLong().toString()) }
+    val montoValido = texto.toLongOrNull() != null && (texto.toLongOrNull() ?: 0L) > 0
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor   = Color(0xFF111111),
+        title = {
+            Text("Ingreso base mensual", fontWeight = FontWeight.Bold, color = TextoPrimario)
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Modificá tu sueldo o ingreso principal del mes.",
+                    style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                OutlinedTextField(
+                    value         = texto,
+                    onValueChange = { if (it.length <= 10) texto = it.filter { c -> c.isDigit() } },
+                    label         = { Text("Monto en ARS") },
+                    prefix        = { Text("$ ") },
+                    singleLine    = true,
+                    colors        = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor   = VerdePrimario,
+                        unfocusedBorderColor = Color(0xFF444444),
+                        focusedLabelColor    = VerdePrimario,
+                        cursorColor          = VerdePrimario,
+                        focusedTextColor     = TextoPrimario,
+                        unfocusedTextColor   = TextoPrimario
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick  = { texto.toLongOrNull()?.let { onGuardar(it.toDouble()) } },
+                enabled  = montoValido
+            ) {
+                Text("Guardar", color = if (montoValido) VerdePrimario else TextoMuted,
+                    fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar", color = TextoSecundario)
+            }
+        }
+    )
 }

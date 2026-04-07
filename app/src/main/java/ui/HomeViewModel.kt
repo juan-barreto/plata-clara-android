@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.candlelabs.gestionpersonal.model.HistorialItem
+import com.candlelabs.gestionpersonal.model.MovimientoEditRequest
 import com.candlelabs.gestionpersonal.network.RetrofitClient
 import com.candlelabs.gestionpersonal.network.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -196,6 +197,30 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 @Suppress("UNCHECKED_CAST")
                 return HomeViewModel(context) as T
             }
+        }
+    }
+    fun editarIngresoBase(nuevoMonto: Double, onExito: () -> Unit, onError: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                val movimientos = RetrofitClient.create(SupabaseClient.instance).getPresupuesto("mensual")
+                // Buscamos el ingreso base del mes actual
+                val ingresoBase = movimientos.firstOrNull {
+                    it.tipo == "ingreso" && it.descripcion == "Ingreso base mensual"
+                }
+                if (ingresoBase == null) { onError(); return@launch }
+
+                RetrofitClient.create(SupabaseClient.instance).editarMovimiento(
+                    id      = ingresoBase.id,
+                    request = MovimientoEditRequest(
+                        tipo = "ingreso",
+                        categoria = ingresoBase.categoria,
+                        descripcion = "Ingreso base mensual",
+                        monto = nuevoMonto
+                    )
+                )
+                recargar()
+                onExito()
+            } catch (_: Exception) { onError() }
         }
     }
 }
