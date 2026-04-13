@@ -13,12 +13,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.OffsetMapping
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -27,15 +27,14 @@ import com.candlelabs.gestionpersonal.ui.theme.*
 
 @Composable
 fun AlquilerScreen(navController: NavController) {
-
     val viewModel: AlquilerViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
 
-    var alquiler by remember { mutableStateOf("") }
-    var fechaInicio by remember { mutableStateOf("") }
-    var fechaFirma by remember { mutableStateOf("") }
-    var indiceSeleccionado by remember { mutableStateOf("ipc") }
-    var periodoSeleccionado by remember { mutableIntStateOf(3) }
+    var alquiler             by remember { mutableStateOf("") }
+    var fechaInicio          by remember { mutableStateOf("") }
+    var fechaFirma           by remember { mutableStateOf("") }
+    var indiceSeleccionado   by remember { mutableStateOf("ipc") }
+    var periodoSeleccionado  by remember { mutableIntStateOf(3) }
 
     val indices = listOf("ipc", "icl")
     val periodos = listOf(3 to "Trimestral", 4 to "Cuatrimestral", 6 to "Semestral", 12 to "Anual")
@@ -43,18 +42,14 @@ fun AlquilerScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(FondoNegro)
+            .background(FondoNegro)          // todo negro — sin bloque crema
             .verticalScroll(rememberScrollState())
     ) {
-        // ══════════════════════════════════════════════
-        // HEADER
-        // ══════════════════════════════════════════════
+        // ── Header ───────────────────────────────────────────
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment     = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Icon(Icons.Rounded.Apartment, null, tint = VerdePrimario, modifier = Modifier.size(28.dp))
@@ -68,28 +63,19 @@ fun AlquilerScreen(navController: NavController) {
             }
         }
 
-        // ══════════════════════════════════════════════
-        // BLOQUE CREMA
-        // ══════════════════════════════════════════════
+        // ── Contenido — directo sobre FondoNegro ─────────────
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .background(FondoPrincipal, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                .padding(horizontal = 14.dp, vertical = 20.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-
-            // ── FORMULARIO ──
+            // ── Formulario ───────────────────────────────────
             Card(
                 Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
-                shape = RoundedCornerShape(18.dp),
+                shape  = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = FondoCard),
                 border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
             ) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-
-                    // Monto
                     OutlinedTextField(
                         value = alquiler, onValueChange = { alquiler = it },
                         label = { Text("Monto actual del alquiler", color = TextoSecundario) },
@@ -100,14 +86,10 @@ fun AlquilerScreen(navController: NavController) {
                             focusedTextColor = TextoPrimario, unfocusedTextColor = TextoPrimario,
                             focusedBorderColor = VerdePrimario, unfocusedBorderColor = Divisor, cursorColor = VerdePrimario
                         ),
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth(), singleLine = true
+                        shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth(), singleLine = true
                     )
-
-                    // Fecha último aumento
                     OutlinedTextField(
-                        value = fechaInicio,
-                        onValueChange = { fechaInicio = it.filter { c -> c.isDigit() }.take(8) },
+                        value = fechaInicio, onValueChange = { fechaInicio = it.filter { c -> c.isDigit() }.take(8) },
                         label = { Text("Fecha de último aumento", color = TextoSecundario) },
                         placeholder = { Text("AAAA-MM-DD", color = TextoMuted) },
                         leadingIcon = { Icon(Icons.Rounded.CalendarMonth, null, tint = TextoSecundario) },
@@ -117,14 +99,10 @@ fun AlquilerScreen(navController: NavController) {
                             focusedTextColor = TextoPrimario, unfocusedTextColor = TextoPrimario,
                             focusedBorderColor = VerdePrimario, unfocusedBorderColor = Divisor, cursorColor = VerdePrimario
                         ),
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth(), singleLine = true
+                        shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth(), singleLine = true
                     )
-
-                    // Fecha firma
                     OutlinedTextField(
-                        value = fechaFirma,
-                        onValueChange = { fechaFirma = it.filter { c -> c.isDigit() }.take(8) },
+                        value = fechaFirma, onValueChange = { fechaFirma = it.filter { c -> c.isDigit() }.take(8) },
                         label = { Text("Fecha de firma del contrato", color = TextoSecundario) },
                         placeholder = { Text("AAAA-MM-DD", color = TextoMuted) },
                         leadingIcon = { Icon(Icons.Rounded.EditCalendar, null, tint = TextoSecundario) },
@@ -134,16 +112,15 @@ fun AlquilerScreen(navController: NavController) {
                             focusedTextColor = TextoPrimario, unfocusedTextColor = TextoPrimario,
                             focusedBorderColor = VerdePrimario, unfocusedBorderColor = Divisor, cursorColor = VerdePrimario
                         ),
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth(), singleLine = true
+                        shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth(), singleLine = true
                     )
                 }
             }
 
-            // ── ÍNDICE ──
+            // ── Índice ───────────────────────────────────────
             Card(
                 Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
-                shape = RoundedCornerShape(18.dp),
+                shape  = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = FondoCard),
                 border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
             ) {
@@ -153,16 +130,14 @@ fun AlquilerScreen(navController: NavController) {
                         indices.forEach { indice ->
                             FilterChip(
                                 selected = indiceSeleccionado == indice,
-                                onClick = { indiceSeleccionado = indice },
-                                label = { Text(indice.uppercase(), fontWeight = FontWeight.Bold) },
+                                onClick  = { indiceSeleccionado = indice },
+                                label    = { Text(indice.uppercase(), fontWeight = FontWeight.Bold) },
                                 leadingIcon = {
-                                    Icon(
-                                        if (indice == "ipc") Icons.Rounded.TrendingUp else Icons.Rounded.BarChart,
-                                        null, modifier = Modifier.size(16.dp)
-                                    )
+                                    Icon(if (indice == "ipc") Icons.Rounded.TrendingUp else Icons.Rounded.BarChart, null, modifier = Modifier.size(16.dp))
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = VerdePrimario, selectedLabelColor = FondoNegro,
+                                    selectedContainerColor   = VerdePrimario,
+                                    selectedLabelColor       = FondoNegro,
                                     selectedLeadingIconColor = FondoNegro
                                 )
                             )
@@ -177,10 +152,10 @@ fun AlquilerScreen(navController: NavController) {
                 }
             }
 
-            // ── PERÍODO ──
+            // ── Período ──────────────────────────────────────
             Card(
                 Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
-                shape = RoundedCornerShape(18.dp),
+                shape  = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = FondoCard),
                 border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
             ) {
@@ -190,11 +165,9 @@ fun AlquilerScreen(navController: NavController) {
                         periodos.take(2).forEach { (meses, etiqueta) ->
                             FilterChip(
                                 selected = periodoSeleccionado == meses,
-                                onClick = { periodoSeleccionado = meses },
-                                label = { Text(etiqueta) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = VerdePrimario, selectedLabelColor = FondoNegro
-                                )
+                                onClick  = { periodoSeleccionado = meses },
+                                label    = { Text(etiqueta) },
+                                colors   = FilterChipDefaults.filterChipColors(selectedContainerColor = VerdePrimario, selectedLabelColor = FondoNegro)
                             )
                         }
                     }
@@ -202,18 +175,16 @@ fun AlquilerScreen(navController: NavController) {
                         periodos.drop(2).forEach { (meses, etiqueta) ->
                             FilterChip(
                                 selected = periodoSeleccionado == meses,
-                                onClick = { periodoSeleccionado = meses },
-                                label = { Text(etiqueta) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = VerdePrimario, selectedLabelColor = FondoNegro
-                                )
+                                onClick  = { periodoSeleccionado = meses },
+                                label    = { Text(etiqueta) },
+                                colors   = FilterChipDefaults.filterChipColors(selectedContainerColor = VerdePrimario, selectedLabelColor = FondoNegro)
                             )
                         }
                     }
                 }
             }
 
-            // ── BOTÓN CALCULAR ──
+            // ── Botón calcular ────────────────────────────────
             Button(
                 onClick = {
                     val monto = alquiler.toDoubleOrNull()
@@ -224,15 +195,15 @@ fun AlquilerScreen(navController: NavController) {
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VerdePrimario, contentColor = FondoNegro)
+                shape    = RoundedCornerShape(14.dp),
+                colors   = ButtonDefaults.buttonColors(containerColor = VerdePrimario, contentColor = FondoNegro)
             ) {
                 Icon(Icons.Rounded.Calculate, null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Calcular ajuste", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
 
-            // ── RESULTADO ──
+            // ── Resultado ─────────────────────────────────────
             when (uiState) {
                 is AlquilerUiState.Idle -> {}
                 is AlquilerUiState.Cargando -> {
@@ -242,21 +213,15 @@ fun AlquilerScreen(navController: NavController) {
                 }
                 is AlquilerUiState.Exito -> {
                     val historial = (uiState as AlquilerUiState.Exito).respuesta.historial
-
-                    Text("RESULTADO", style = MaterialTheme.typography.labelSmall, color = TextoSobreCreme, letterSpacing = 1.sp, fontWeight = FontWeight.Bold)
-
+                    Text("RESULTADO", style = MaterialTheme.typography.labelSmall, color = TextoPrimario, letterSpacing = 1.sp, fontWeight = FontWeight.Bold)
                     historial.forEach { periodo ->
                         Card(
                             Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(14.dp), ambientColor = SombraCard, spotColor = SombraCard),
-                            shape = RoundedCornerShape(14.dp),
+                            shape  = RoundedCornerShape(14.dp),
                             colors = CardDefaults.cardColors(containerColor = FondoCard),
                             border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
                         ) {
-                            Row(
-                                Modifier.fillMaxWidth().padding(14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            Row(Modifier.fillMaxWidth().padding(14.dp), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Icon(Icons.Rounded.DateRange, null, tint = VerdePrimario, modifier = Modifier.size(18.dp))
                                     Text(periodo.periodo, style = MaterialTheme.typography.bodyMedium, color = TextoPrimario)
@@ -271,11 +236,7 @@ fun AlquilerScreen(navController: NavController) {
                 }
                 is AlquilerUiState.Error -> {
                     val msg = (uiState as AlquilerUiState.Error).mensaje
-                    Card(
-                        Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = RojoGasto.copy(alpha = 0.1f))
-                    ) {
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = RojoGasto.copy(alpha = 0.1f))) {
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Rounded.ErrorOutline, null, tint = RojoGasto, modifier = Modifier.size(18.dp))
                             Text(msg, style = MaterialTheme.typography.bodySmall, color = RojoGasto)
@@ -289,7 +250,6 @@ fun AlquilerScreen(navController: NavController) {
     }
 }
 
-// Transforma visualmente "20240601" → "2024-06-01"
 class FechaVisualTransformation : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val digits = text.text

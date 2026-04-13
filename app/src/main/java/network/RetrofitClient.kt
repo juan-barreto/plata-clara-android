@@ -8,7 +8,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 
 object RetrofitClient {
-    private const val BASE_URL = "https://web-production-f82cf.up.railway.app/"
+    private const val BASE_URL = "https://backend-gestion-personal.onrender.com/"
 
     fun create(supabase: SupabaseClient): ApiService {
         val client = OkHttpClient.Builder()

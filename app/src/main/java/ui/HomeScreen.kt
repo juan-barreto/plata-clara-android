@@ -89,26 +89,23 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel) {
                     onDismiss = { mostrarDialogIngreso = false }
                 )
             }
+
             // ── Dialog para editar presupuesto de una categoría ──────
             categoriaEditando?.let { cat ->
+                // Los presupuestos de las otras categorías ya vienen de Supabase
+                // dentro de cada CategoriaResumen — no hace falta SharedPreferences
                 val presupuestosOtras = datos.categorias
                     .filter { it.nombre != cat.nombre }
-                    .sumOf {
-                        val prefs = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
-                        val custom = prefs.getFloat("presupuesto_${userId}_${it.nombre}", -1f)
-                        if (custom >= 0f) custom.toDouble() else it.presupuesto
-                    }
+                    .sumOf { it.presupuesto }
 
                 EditarCategoriaDialog(
                     categoria = cat,
                     totalIngresos = datos.totalIngresos,
                     presupuestosOtrasCategorias = presupuestosOtras,
                     onGuardar = { nuevoMonto ->
-                        context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE).edit()
-                            .putFloat("presupuesto_${userId}_${cat.nombre}", nuevoMonto.toFloat())
-                            .apply()
+                        // Guarda en Supabase a través del ViewModel
+                        viewModel.guardarPresupuestoCategoria(cat.nombre, nuevoMonto)
                         categoriaEditando = null
-                        viewModel.recargar()
                     },
                     onDismiss = { categoriaEditando = null }
                 )

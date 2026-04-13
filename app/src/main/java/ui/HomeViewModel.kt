@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.candlelabs.gestionpersonal.model.HistorialItem
 import com.candlelabs.gestionpersonal.model.MovimientoEditRequest
+import com.candlelabs.gestionpersonal.model.MovimientoRequest
 import com.candlelabs.gestionpersonal.network.RetrofitClient
 import com.candlelabs.gestionpersonal.network.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -13,6 +14,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import com.candlelabs.gestionpersonal.model.PresupuestoCategoriaRequest
 
 data class CategoriaResumen(
     val nombre: String,
@@ -101,6 +103,8 @@ class HomeViewModel(private val context: Context) : ViewModel() {
     private suspend fun cargarDatosInterno(mostrarLoading: Boolean) {
         if (mostrarLoading) _uiState.value = HomeUiState.Cargando
         try {
+            SupabaseClient.instance.auth.awaitInitialization()
+
             val nombre = obtenerNombreUsuario()
 
             val ipcDeferred = viewModelScope.async {
@@ -112,10 +116,16 @@ class HomeViewModel(private val context: Context) : ViewModel() {
             val presupuestoDeferred = viewModelScope.async {
                 try { RetrofitClient.create(SupabaseClient.instance).getPresupuesto("mensual") } catch (e: Exception) { emptyList() }
             }
+            // Agregá este deferred junto a los otros tres
+            val presupuestosDeferred = viewModelScope.async {
+                try { RetrofitClient.create(SupabaseClient.instance).getPresupuestosCategorias() }
+                catch (_: Exception) { emptyMap() }
+            }
 
             val ipcDatos = ipcDeferred.await()
             val historial = historialDeferred.await()
             val movimientos = presupuestoDeferred.await()
+            val presupuestosPorCat = presupuestosDeferred.await()
 
             var ipcUltimo: String? = null
             var ipcAnterior: String? = null
@@ -155,13 +165,12 @@ class HomeViewModel(private val context: Context) : ViewModel() {
 
             val categoriasConocidas = listOf("supermercado", "transporte", "comida/salidas", "servicios", "salud")
             val gastosVarios = gastosPorCategoria.filter { it.key !in categoriasConocidas }.values.sum()
-            val presupuestoPorCat = 0.0
 
             val categorias = (categoriasConocidas + "varios").map { cat ->
                 CategoriaResumen(
-                    nombre = cat,
-                    gastado = if (cat == "varios") gastosVarios else (gastosPorCategoria[cat] ?: 0.0),
-                    presupuesto = presupuestoPorCat
+                    nombre     = cat,
+                    gastado    = if (cat == "varios") gastosVarios else (gastosPorCategoria[cat] ?: 0.0),
+                    presupuesto = presupuestosPorCat[cat] ?: 0.0  // ← ahora viene de Supabase
                 )
             }
 
@@ -203,24 +212,35 @@ class HomeViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 val movimientos = RetrofitClient.create(SupabaseClient.instance).getPresupuesto("mensual")
-                // Buscamos el ingreso base del mes actual
                 val ingresoBase = movimientos.firstOrNull {
-                    it.tipo == "ingreso" && it.descripcion == "Ingreso base mensual"
+                    it.tipo == "ingreso" && it.descripcion?.contains("Ingreso base", ignoreCase = true) == true
                 }
-                if (ingresoBase == null) { onError(); return@launch }
 
-                RetrofitClient.create(SupabaseClient.instance).editarMovimiento(
-                    id      = ingresoBase.id,
-                    request = MovimientoEditRequest(
-                        tipo = "ingreso",
-                        categoria = ingresoBase.categoria,
-                        descripcion = "Ingreso base mensual",
-                        monto = nuevoMonto
+                if (ingresoBase != null) {
+                    RetrofitClient.create(SupabaseClient.instance).editarMovimiento(
+                        id      = ingresoBase.id,
+                        request = MovimientoEditRequest("ingreso", ingresoBase.categoria, "Ingreso base mensual", nuevoMonto)
                     )
-                )
+                } else {
+                    RetrofitClient.create(SupabaseClient.instance).agregarMovimiento(
+                        MovimientoRequest("ingreso", "Sueldo", "Ingreso base mensual", nuevoMonto)
+                    )
+                }
                 recargar()
                 onExito()
             } catch (_: Exception) { onError() }
         }
     }
+
+    fun guardarPresupuestoCategoria(categoria: String, monto: Double) {
+        viewModelScope.launch {
+            try {
+                RetrofitClient.create(SupabaseClient.instance).guardarPresupuestoCategoria(
+                    PresupuestoCategoriaRequest(categoria, monto)
+                )
+                recargar()
+            } catch (_: Exception) {}
+        }
+    }  // ← cierra guardarPresupuestoCategoria
+
 }

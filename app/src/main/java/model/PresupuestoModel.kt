@@ -17,7 +17,10 @@ data class MovimientoRequest(
     val descripcion: String,
     val monto: Double
 )
-
+data class PresupuestoCategoriaRequest(
+    val categoria: String,
+    val monto: Double
+)
 // Lo que mandamos al editar un movimiento existente — igual estructura
 data class MovimientoEditRequest(
     val tipo: String,

@@ -60,11 +60,11 @@ fun PerfilScreen(onCerrarSesion: () -> Unit) {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().background(FondoPrincipal).padding(20.dp),
+        modifier = Modifier.fillMaxSize().background(FondoNegro).padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Perfil", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-            color = TextoSobreCreme, modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp))
+            color = TextoPrimario, modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp))
 
         // Avatar
         Surface(shape = CircleShape, color = VerdePrimario, modifier = Modifier.size(90.dp)) {
@@ -76,7 +76,7 @@ fun PerfilScreen(onCerrarSesion: () -> Unit) {
         Spacer(Modifier.height(16.dp))
 
         if (nombre.isNotBlank()) {
-            Text(nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextoSobreCreme)
+            Text(nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextoPrimario)
             Spacer(Modifier.height(4.dp))
         }
         Text(email, style = MaterialTheme.typography.bodyMedium, color = TextoSecundario)

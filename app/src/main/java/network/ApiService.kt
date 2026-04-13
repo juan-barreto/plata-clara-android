@@ -13,6 +13,7 @@ import com.candlelabs.gestionpersonal.model.MovimientoItem
 import com.candlelabs.gestionpersonal.model.MovimientoRequest
 import com.candlelabs.gestionpersonal.model.MovimientoEditRequest
 import com.candlelabs.gestionpersonal.model.MensajeResponse
+import com.candlelabs.gestionpersonal.model.PresupuestoCategoriaRequest
 import retrofit2.http.Streaming
 import retrofit2.http.PUT
 import retrofit2.http.Query
@@ -73,6 +74,16 @@ interface ApiService {
     // Borra un movimiento
     @DELETE("presupuesto/{id}")
     suspend fun borrarMovimiento(@Path("id") id: String): MensajeResponse
+
+    // Trae todos los presupuestos por categoría del usuario
+// Devuelve un Map: "supermercado" → 50000.0
+    @GET("presupuestos-categorias")
+    suspend fun getPresupuestosCategorias(): Map<String, Double>
+
+    // Guarda o actualiza el presupuesto de una categoría
+    @PUT("presupuestos-categorias")
+    suspend fun guardarPresupuestoCategoria(@Body request: PresupuestoCategoriaRequest): MensajeResponse
+
     //Borra todos los movimientos
 
     @DELETE("presupuesto/reset")
