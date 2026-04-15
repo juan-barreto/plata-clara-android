@@ -1,5 +1,7 @@
 package com.candlelabs.gestionpersonal.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,11 +22,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
@@ -35,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.candlelabs.gestionpersonal.R
 import com.candlelabs.gestionpersonal.model.MovimientoItem
 import com.candlelabs.gestionpersonal.ui.theme.*
+import kotlinx.coroutines.delay
 
 val CATEGORIAS_INGRESO = listOf("Sueldo", "Freelance", "Negocio propio", "Changas", "Jubilación", "Otro ingreso")
 val CATEGORIAS_GASTO = listOf(
@@ -56,12 +61,12 @@ val ICONOS_CATEGORIA = mapOf(
 @Composable
 fun PresupuestoScreen() {
     val viewModel: PresupuestoViewModel = viewModel()
-    val uiState      by viewModel.uiState.collectAsState()
-    val filtroActual by viewModel.filtro.collectAsState()
-    val context      = LocalContext.current
-    val exportando   by viewModel.exportando.collectAsState()
+    val uiState       by viewModel.uiState.collectAsState()
+    val filtroActual  by viewModel.filtro.collectAsState()
+    val context       = LocalContext.current
+    val exportando    by viewModel.exportando.collectAsState()
     val mensajeExport by viewModel.mensajeExport.collectAsState()
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val isRefreshing  by viewModel.isRefreshing.collectAsState()
     val totales: Triple<Double, Double, Double> by viewModel.totales.collectAsState()
 
     var mostrarBottomSheet    by remember { mutableStateOf(false) }
@@ -70,17 +75,24 @@ fun PresupuestoScreen() {
     var idParaBorrar          by remember { mutableStateOf<String?>(null) }
     var mostrarConfirmReset   by remember { mutableStateOf(false) }
     var mostrarMenuExport     by remember { mutableStateOf(false) }
+    var mostrarDialogSinIngreso by remember { mutableStateOf(false) }
     val filtros = listOf("semanal", "mensual")
 
     // ── porDia calculado AQUÍ — en el scope del @Composable ──────────────
-    // Usamos derivedStateOf para que solo se recalcule cuando uiState cambia.
-    // No va adentro del LazyColumn porque LazyListScope no es @Composable.
     val porDia by remember {
         derivedStateOf {
             (uiState as? PresupuestoUiState.Exito)?.movimientos
                 ?.sortedByDescending { it.fecha }
                 ?.groupBy { it.fecha.substring(0, 10) }
                 ?: emptyMap()
+        }
+    }
+
+    // ── Disparar dialog cuando carga y no hay ingresos ────────────────────
+    val (ingresosActuales, _, _) = totales
+    LaunchedEffect(ingresosActuales, uiState) {
+        if (uiState is PresupuestoUiState.Exito && ingresosActuales == 0.0) {
+            mostrarDialogSinIngreso = true
         }
     }
 
@@ -174,160 +186,231 @@ fun PresupuestoScreen() {
 
     mensajeExport?.let { LaunchedEffect(it) { kotlinx.coroutines.delay(3000); viewModel.limpiarMensajeExport() } }
 
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh    = { viewModel.recargar() },
-        modifier     = Modifier.fillMaxSize().background(FondoNegro)
-    ) {
-        LazyColumn(
-            modifier        = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding  = PaddingValues(top = 16.dp, bottom = 100.dp)
+    // ── Box para poder superponer el dialog animado ───────────────────────
+    Box(Modifier.fillMaxSize()) {
+
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh    = { viewModel.recargar() },
+            modifier     = Modifier.fillMaxSize().background(FondoNegro)
         ) {
-            mensajeExport?.let { msg ->
-                item {
-                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = FondoCard)) {
-                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Rounded.CheckCircle, null, tint = VerdePrimario, modifier = Modifier.size(18.dp))
-                            Text(msg, style = MaterialTheme.typography.bodyMedium, color = TextoPrimario)
-                        }
-                    }
-                }
-            }
-
-            item {
-                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Rounded.AccountBalanceWallet, null, tint = VerdePrimario, modifier = Modifier.size(28.dp))
-                        Text("Presupuesto", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextoPrimario)
-                    }
-                    Row {
-                        IconButton(onClick = { mostrarConfirmReset = true }) { Icon(Icons.Rounded.RestartAlt, "Resetear", tint = TextoSecundario, modifier = Modifier.size(28.dp)) }
-                        IconButton(onClick = { mostrarMenuExport = true }) { Icon(Icons.Rounded.FileDownload, "Exportar", tint = VerdePrimario, modifier = Modifier.size(28.dp)) }
-                        IconButton(onClick = { mostrarBottomSheet = true }) { Icon(Icons.Rounded.Add, "Agregar", tint = VerdePrimario, modifier = Modifier.size(28.dp)) }
-                    }
-                }
-            }
-
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    filtros.forEach { filtro ->
-                        FilterChip(
-                            selected = filtroActual == filtro,
-                            onClick  = { viewModel.cambiarFiltro(filtro) },
-                            label    = { Text(filtro.replaceFirstChar { it.uppercase() }) },
-                            colors   = FilterChipDefaults.filterChipColors(selectedContainerColor = VerdePrimario, selectedLabelColor = FondoNegro)
-                        )
-                    }
-                }
-            }
-
-            when (val estado = uiState) {
-                is PresupuestoUiState.Cargando -> {
-                    item { Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = VerdePrimario) } }
-                }
-                is PresupuestoUiState.Error -> {
-                    item { Text("Error: ${estado.mensaje}", color = RojoGasto) }
-                }
-                is PresupuestoUiState.Exito -> {
-                    val movimientos = estado.movimientos
-                    val (ingresos, gastos, balance) = totales
-
+            LazyColumn(
+                modifier            = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding      = PaddingValues(top = 16.dp, bottom = 100.dp)
+            ) {
+                mensajeExport?.let { msg ->
                     item {
-                        Card(
-                            Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = FondoCard),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
-                        ) {
-                            Column(Modifier.padding(18.dp)) {
-                                Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
-                                    ResumenItem("INGRESOS", ingresos, VerdePrimario)
-                                    ResumenItem("GASTOS", gastos, RojoGasto)
-                                    ResumenItem("BALANCE", balance, if (balance >= 0) VerdePrimario else RojoGasto)
-                                }
-                                Spacer(Modifier.height(10.dp))
-                                HorizontalDivider(color = Divisor)
-                                Spacer(Modifier.height(8.dp))
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Icon(
-                                        when { balance > 0 -> Icons.Rounded.CheckCircle; balance == 0.0 -> Icons.Rounded.Warning; else -> Icons.Rounded.ErrorOutline },
-                                        null,
-                                        tint = when { balance > 0 -> VerdePrimario; balance == 0.0 -> Naranja; else -> RojoGasto },
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        when { balance > 0 -> "Vas bien — tenés un superávit"; balance == 0.0 -> "Justo — gastos igualan ingresos"; else -> "Cuidado — estás gastando más de lo que ganás" },
-                                        style = MaterialTheme.typography.bodySmall, color = TextoMuted
-                                    )
-                                }
+                        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = FondoCard)) {
+                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Rounded.CheckCircle, null, tint = VerdePrimario, modifier = Modifier.size(18.dp))
+                                Text(msg, style = MaterialTheme.typography.bodyMedium, color = TextoPrimario)
                             }
                         }
                     }
+                }
 
-                    if (movimientos.isNotEmpty()) {
-                        item(key = "grafico") {
+                item {
+                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Presupuesto", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextoPrimario)
+                        }
+                        Row {
+                            IconButton(onClick = { mostrarConfirmReset = true }) { Icon(Icons.Rounded.RestartAlt, "Resetear", tint = TextoSecundario, modifier = Modifier.size(28.dp)) }
+                            IconButton(onClick = { mostrarMenuExport = true }) { Icon(Icons.Rounded.FileDownload, "Exportar", tint = VerdePrimario, modifier = Modifier.size(28.dp)) }
+                            IconButton(onClick = { mostrarBottomSheet = true }) { Icon(Icons.Rounded.Add, "Agregar", tint = VerdePrimario, modifier = Modifier.size(28.dp)) }
+                        }
+                    }
+                }
+
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        filtros.forEach { filtro ->
+                            FilterChip(
+                                selected = filtroActual == filtro,
+                                onClick  = { viewModel.cambiarFiltro(filtro) },
+                                label    = { Text(filtro.replaceFirstChar { it.uppercase() }) },
+                                colors   = FilterChipDefaults.filterChipColors(selectedContainerColor = VerdePrimario, selectedLabelColor = FondoNegro)
+                            )
+                        }
+                    }
+                }
+
+                when (val estado = uiState) {
+                    is PresupuestoUiState.Cargando -> {
+                        item { Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = VerdePrimario) } }
+                    }
+                    is PresupuestoUiState.Error -> {
+                        item { Text("Error: ${estado.mensaje}", color = RojoGasto) }
+                    }
+                    is PresupuestoUiState.Exito -> {
+                        val movimientos = estado.movimientos
+                        val (ingresos, gastos, balance) = totales
+
+                        item {
                             Card(
-                                Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
+                                Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = SombraCard, spotColor = SombraCard),
                                 shape = RoundedCornerShape(18.dp),
                                 colors = CardDefaults.cardColors(containerColor = FondoCard),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
                             ) {
-                                Box(Modifier.padding(16.dp)) {
-                                    GraficoBarrasPorSemana(movimientos = movimientos)
-                                }
-                            }
-                        }
-                    }
-
-                    item(key = "header_movimientos") {
-                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                            Text("Movimientos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextoPrimario)
-                            Text("${movimientos.size} registros", style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
-                        }
-                    }
-
-                    if (movimientos.isEmpty()) {
-                        item {
-                            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = FondoCard), border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)) {
-                                Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(Icons.Rounded.ReceiptLong, null, tint = TextoMuted, modifier = Modifier.size(40.dp))
+                                Column(Modifier.padding(18.dp)) {
+                                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
+                                        ResumenItem("INGRESOS", ingresos, VerdePrimario)
+                                        ResumenItem("GASTOS", gastos, RojoGasto)
+                                        ResumenItem("BALANCE", balance, if (balance >= 0) VerdePrimario else RojoGasto)
+                                    }
+                                    Spacer(Modifier.height(10.dp))
+                                    HorizontalDivider(color = Divisor)
                                     Spacer(Modifier.height(8.dp))
-                                    Text("Sin movimientos", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = TextoPrimario)
-                                    Spacer(Modifier.height(4.dp))
-                                    Text("Tocá + para agregar uno", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Icon(
+                                            when { balance > 0 -> Icons.Rounded.CheckCircle; balance == 0.0 -> Icons.Rounded.Warning; else -> Icons.Rounded.ErrorOutline },
+                                            null,
+                                            tint = when { balance > 0 -> VerdePrimario; balance == 0.0 -> Naranja; else -> RojoGasto },
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            when { balance > 0 -> "Vas bien — tenés un superávit"; balance == 0.0 -> "Justo — gastos igualan ingresos"; else -> "Cuidado — estás gastando más de lo que ganás" },
+                                            style = MaterialTheme.typography.bodySmall, color = TextoMuted
+                                        )
+                                    }
                                 }
                             }
                         }
-                    } else {
-                        // porDia viene de derivedStateOf declarado arriba — ya está calculado
-                        porDia.forEach { (fecha, movsDia) ->
-                            item(key = "fecha_$fecha") {
-                                Text(
-                                    text = formatearFecha(fecha),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = TextoSecundario,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                                )
+
+                        if (ingresos == 0.0) {
+                            item(key = "banner_sin_ingreso") {
+                                Card(
+                                    Modifier.fillMaxWidth(),
+                                    shape  = RoundedCornerShape(14.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Naranja.copy(alpha = 0.1f)),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Naranja.copy(alpha = 0.3f))
+                                ) {
+                                    Row(
+                                        Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(Icons.Rounded.Warning, null, tint = Naranja, modifier = Modifier.size(18.dp))
+                                        Text(
+                                            "No registraste ingresos este mes — tus porcentajes no van a ser precisos",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Naranja
+                                        )
+                                    }
+                                }
                             }
-                            items(movsDia, key = { it.id }) { movimiento ->
-                                FilaMovimiento(
-                                    movimiento = movimiento,
-                                    onEditar   = { movimientoEditando = movimiento; mostrarBottomSheet = true },
-                                    onBorrar   = { idParaBorrar = movimiento.id; mostrarConfirmBorrado = true }
-                                )
+                        }
+
+                        if (movimientos.isNotEmpty()) {
+                            item(key = "grafico") {
+                                Card(
+                                    Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                    colors = CardDefaults.cardColors(containerColor = FondoCard),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)
+                                ) {
+                                    Box(Modifier.padding(16.dp)) {
+                                        GraficoBarrasPorSemana(movimientos = movimientos)
+                                    }
+                                }
+                            }
+                        }
+
+                        item(key = "header_movimientos") {
+                            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                                Text("Movimientos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextoPrimario)
+                                Text("${movimientos.size} registros", style = MaterialTheme.typography.labelSmall, color = TextoSecundario)
+                            }
+                        }
+
+                        if (movimientos.isEmpty()) {
+                            item {
+                                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = FondoCard), border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)) {
+                                    Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(Icons.Rounded.ReceiptLong, null, tint = TextoMuted, modifier = Modifier.size(40.dp))
+                                        Spacer(Modifier.height(8.dp))
+                                        Text("Sin movimientos", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = TextoPrimario)
+                                        Spacer(Modifier.height(4.dp))
+                                        Text("Tocá + para agregar uno", style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                                    }
+                                }
+                            }
+                        } else {
+                            porDia.forEach { (fecha, movsDia) ->
+                                item(key = "fecha_$fecha") {
+                                    Text(
+                                        text  = formatearFecha(fecha),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = TextoSecundario,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                                    )
+                                }
+                                items(movsDia, key = { it.id }) { movimiento ->
+                                    FilaMovimiento(
+                                        movimiento = movimiento,
+                                        onEditar   = { movimientoEditando = movimiento; mostrarBottomSheet = true },
+                                        onBorrar   = { idParaBorrar = movimiento.id; mostrarConfirmBorrado = true }
+                                    )
+                                }
+                            }
+                        }
+
+                        item(key = "info") {
+                            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = FondoCard), border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)) {
+                                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Rounded.Info, null, tint = VerdePrimario, modifier = Modifier.size(16.dp))
+                                    Text("Registrá todos tus ingresos y gastos para tener una visión clara de tu situación financiera.", style = MaterialTheme.typography.bodySmall, color = TextoMuted, lineHeight = 18.sp)
+                                }
                             }
                         }
                     }
+                }
+            }
+        }
 
-                    item(key = "info") {
-                        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = FondoCard), border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard)) {
-                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Rounded.Info, null, tint = VerdePrimario, modifier = Modifier.size(16.dp))
-                                Text("Registrá todos tus ingresos y gastos para tener una visión clara de tu situación financiera.", style = MaterialTheme.typography.bodySmall, color = TextoMuted, lineHeight = 18.sp)
+        // ── Dialog sin ingreso — aparece y se desvanece solo ─────────────
+        if (mostrarDialogSinIngreso) {
+            val alpha = remember { Animatable(0f) }
+            LaunchedEffect(Unit) {
+                alpha.animateTo(1f, tween(300))
+                delay(2000)
+                alpha.animateTo(0f, tween(600))
+                mostrarDialogSinIngreso = false
+            }
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { this.alpha = alpha.value },
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    shape  = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = FondoCard),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard),
+                    modifier = Modifier
+                        .padding(horizontal = 40.dp)
+                        .shadow(12.dp, RoundedCornerShape(20.dp), ambientColor = SombraCard, spotColor = SombraCard)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(shape = CircleShape, color = Naranja.copy(alpha = 0.15f), modifier = Modifier.size(56.dp)) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.Warning, null, tint = Naranja, modifier = Modifier.size(28.dp))
                             }
                         }
+                        Text("Sin ingreso registrado",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold, color = TextoPrimario)
+                        Text("Registrá tu ingreso del mes para ver tus porcentajes reales.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextoSecundario,
+                            textAlign = TextAlign.Center)
                     }
                 }
             }

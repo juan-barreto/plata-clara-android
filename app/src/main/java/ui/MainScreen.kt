@@ -9,13 +9,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -31,15 +35,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.zIndex
+import com.candlelabs.gestionpersonal.R
 
 // ═══════════════════════════════════════════════════════════
 // MAIN SCREEN
@@ -57,19 +60,27 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
     val scope         = rememberCoroutineScope()
     val context       = LocalContext.current
 
-    // ViewModel scoped a MainScreen — no se recrea al navegar entre pantallas
     val homeViewModel: HomeViewModel = viewModel(factory = HomeViewModel.factory(context))
+
+    val userId = try { SupabaseClient.instance.auth.currentUserOrNull()?.id ?: "anonimo" } catch (_: Exception) { "anonimo" }
+    val prefsOnboarding = remember { context.getSharedPreferences("plata_clara_prefs_$userId", android.content.Context.MODE_PRIVATE) }
+    var pasoOnboarding by remember { mutableStateOf(prefsOnboarding.getInt("onboarding_paso", 0)) }
+    var boundsCards    by remember { mutableStateOf(ElementoBounds()) }
 
     // Estado de Clara
     var clariEstado         by remember { mutableStateOf(ClariState.IDLE) }
     var mostrarOverlay      by remember { mutableStateOf(false) }
     var mostrarCirculoVerde by remember { mutableStateOf(false) }
     var mensajePostFeedback by remember { mutableStateOf<String?>(null) }
+    var mostrarDialogSinIngreso by remember { mutableStateOf(false) }
 
     val prefs       = remember { context.getSharedPreferences("plata_clara_prefs", android.content.Context.MODE_PRIVATE) }
     var esPrimerUso by remember { mutableStateOf(prefs.getBoolean("hold_primer_uso", true)) }
 
-    // Desaparecer mensaje después de 1 segundo
+    // ── Estado del home para verificar ingreso ─────────────
+    val uiStateHome by homeViewModel.uiState.collectAsState()
+    val sinIngreso = (uiStateHome as? HomeUiState.Exito)?.totalIngresos == 0.0
+
     LaunchedEffect(mensajePostFeedback) {
         if (mensajePostFeedback != null) { delay(1000); mensajePostFeedback = null }
     }
@@ -77,11 +88,9 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val rutaActual = navBackStackEntry?.destination?.route
 
-    // Padding de Clara — dinámico según navbar del dispositivo
     val navBarPadding      = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val claraPaddingBottom = (navBarPadding + 4.dp).coerceAtLeast(12.dp)
 
-    // Definición de ítems de navegación
     val itemsIzquierda = listOf(
         ItemNavegacion(Rutas.HOME,  com.candlelabs.gestionpersonal.R.drawable.icon_home,  "Inicio"),
         ItemNavegacion(Rutas.DOLAR, com.candlelabs.gestionpersonal.R.drawable.icon_dolar, "Dólar"),
@@ -90,14 +99,20 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
         ItemNavegacion(Rutas.ALQUILER, com.candlelabs.gestionpersonal.R.drawable.icon_alquiler, "Alquiler"),
     )
     val itemsMas = listOf(
-        ItemMas(Rutas.PRESUPUESTO, Icons.Filled.AccountBalanceWallet, "Presupuesto",    "Ingresos y gastos"),
-        ItemMas(Rutas.HISTORIAL,   Icons.Filled.History,              "Historial",       "Cálculos de alquiler"),
-        ItemMas(Rutas.INFO,        Icons.Filled.Info,                 "¿Cómo funciona?", "Guía de contratos"),
-        ItemMas(Rutas.PERFIL,      Icons.Filled.Person,               "Perfil",          "Tu cuenta y configuración"),
+        ItemMas(Rutas.MERCADO_PAGO, Icons.Filled.AccountBalance,      "Mercado Pago",       "Importá tus movimientos"),
+        ItemMas(Rutas.PRESUPUESTO,  Icons.Filled.AccountBalanceWallet, "Presupuesto",        "Ingresos y gastos",        iconoRes = R.drawable.presupuesto),
+        ItemMas(Rutas.HISTORIAL,    Icons.Filled.History,              "Historial Alquiler", "Cálculos de alquiler",     iconoRes = R.drawable.calendario_alquiler),
+        ItemMas(Rutas.INFO,         Icons.Filled.Info,                 "¿Cómo funciona?",    "Guía de contratos",        iconoRes = R.drawable.como),
+        ItemMas(Rutas.PERFIL,       Icons.Filled.Person,               "Perfil",             "Tu cuenta y configuración",iconoRes = R.drawable.perfil),
     )
 
     // ── Abrir / cerrar Gasto Express ──────────────────────────
     fun abrirGastoRapido() {
+        // Si no hay ingreso registrado, mostrar dialog y bloquear
+        if (sinIngreso) {
+            mostrarDialogSinIngreso = true
+            return
+        }
         if (esPrimerUso) { prefs.edit().putBoolean("hold_primer_uso", false).apply(); esPrimerUso = false }
         clariEstado    = ClariState.EXPRESS_OPEN
         mostrarOverlay = true
@@ -119,13 +134,12 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
             contentWindowInsets = WindowInsets(0),
             containerColor      = FondoNegro,
             modifier            = Modifier.systemBarsPadding(),
-
             bottomBar = {
                 MainNavBar(
-                    navController    = navController,
-                    itemsIzquierda   = itemsIzquierda,
-                    itemsDerecha     = itemsDerecha,
-                    itemsMas         = itemsMas
+                    navController  = navController,
+                    itemsIzquierda = itemsIzquierda,
+                    itemsDerecha   = itemsDerecha,
+                    itemsMas       = itemsMas
                 )
             }
         ) { innerPadding ->
@@ -134,12 +148,21 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                 Rutas.HOME,
                 Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)
             ) {
-                composable(Rutas.HOME)        { HomeScreen(navController = navController, viewModel = homeViewModel) }
-                composable(Rutas.DOLAR)       { DolarScreen(navController = navController) }
-                composable(Rutas.ALQUILER)    { AlquilerScreen(navController = navController) }
-                composable(Rutas.HISTORIAL)   { HistorialScreen() }
-                composable(Rutas.ASISTENTE)   { AsistenteScreen() }
-                composable(Rutas.INFO)        { InfoScreen() }
+                composable(Rutas.HOME) {
+                    HomeScreen(
+                        navController        = navController,
+                        viewModel            = homeViewModel,
+                        claraPaddingBottom   = claraPaddingBottom,
+                        pasoOnboarding       = pasoOnboarding,
+                        onBoundsCardsChanged = { boundsCards = it }
+                    )
+                }
+                composable(Rutas.MERCADO_PAGO) { MercadoPagoScreen() }
+                composable(Rutas.DOLAR)     { DolarScreen(navController = navController) }
+                composable(Rutas.ALQUILER)  { AlquilerScreen(navController = navController) }
+                composable(Rutas.HISTORIAL) { HistorialScreen() }
+                composable(Rutas.ASISTENTE) { AsistenteScreen(homeViewModel = homeViewModel) }
+                composable(Rutas.INFO)      { InfoScreen() }
                 composable(Rutas.DOLAR_DETALLE) { back ->
                     DolarDetalleScreen(
                         back.arguments?.getString("casa") ?: "",
@@ -153,6 +176,10 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                         scope.launch {
                             try { SupabaseClient.instance.auth.signOut() } catch (_: Exception) {}
                             onCerrarSesion()
+                            val prefsNombre = context.getSharedPreferences("plata_clara_prefs", android.content.Context.MODE_PRIVATE)
+                            val prefsOnb = context.getSharedPreferences("plata_clara_prefs_$userId", android.content.Context.MODE_PRIVATE)
+                            prefsNombre.edit().clear().apply()
+                            prefsOnb.edit().clear().apply()
                         }
                     })
                 }
@@ -161,13 +188,13 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
 
         // ── Clara + ondas ─────────────────────────────────────
         ClaraButton(
-            navController        = navController,
-            rutaActual           = rutaActual,
-            clariEstado          = clariEstado,
-            onClariEstadoChange  = { clariEstado = it },
-            onAbrirGastoExpress  = { abrirGastoRapido() },
-            mensajePostFeedback  = mensajePostFeedback,
-            claraPaddingBottom   = claraPaddingBottom
+            navController       = navController,
+            rutaActual          = rutaActual,
+            clariEstado         = clariEstado,
+            onClariEstadoChange = { clariEstado = it },
+            onAbrirGastoExpress = { abrirGastoRapido() },
+            mensajePostFeedback = mensajePostFeedback,
+            claraPaddingBottom  = claraPaddingBottom
         )
 
         // ── Círculo contrayéndose post-confirmación ───────────
@@ -179,7 +206,7 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
             )
         }
 
-        // ── Mensaje post-feedback ─────────────────────────────────
+        // ── Mensaje post-feedback ─────────────────────────────
         mensajePostFeedback?.let {
             Row(
                 modifier = Modifier
@@ -192,7 +219,7 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(Icons.Rounded.CheckCircle, null, tint = VerdePrimario, modifier = Modifier.size(16.dp))
-                Text(
+                androidx.compose.material3.Text(
                     "Gasto registrado",
                     color = VerdePrimario,
                     style = MaterialTheme.typography.labelMedium,
@@ -200,37 +227,110 @@ fun MainScreen(onCerrarSesion: () -> Unit = {}, abrirGastoExpress: Boolean = fal
                 )
             }
         }
-    }
 
-    // ── Gasto Express — entra desde la derecha ────────────
-        AnimatedVisibility(
-            visible = mostrarOverlay,
-            enter   = slideInHorizontally(
-                initialOffsetX = { it },
-                animationSpec  = tween(240, easing = FastOutSlowInEasing)
-            ),
-            exit    = slideOutHorizontally(
-                targetOffsetX = { it },
-                animationSpec = tween(200, easing = FastOutSlowInEasing)
-            )
-        ) {
-            GastoRapidoOverlay(
-                onDismiss = { cerrarGastoRapido() },
-                onConfirmar = { catBackend, monto ->
-                    scope.launch {
-                        try {
-                            RetrofitClient.create(SupabaseClient.instance)
-                                .agregarMovimiento(MovimientoRequest("gasto", catBackend, "Gasto rápido", monto))
-                        } catch (_: Exception) {}
+        // ── Dialog sin ingreso — aparece y se desvanece solo ──
+        if (mostrarDialogSinIngreso) {
+            val alpha = remember { Animatable(0f) }
+            LaunchedEffect(Unit) {
+                // Aparece rápido
+                alpha.animateTo(1f, tween(300))
+                // Espera 2 segundos
+                delay(2000)
+                // Se desvanece lentamente
+                alpha.animateTo(0f, tween(600))
+                mostrarDialogSinIngreso = false
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(10f)
+                    .graphicsLayer { this.alpha = alpha.value },
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    shape  = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = FondoCard),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BordeCard),
+                    modifier = Modifier
+                        .padding(horizontal = 48.dp)
+                        .shadow(16.dp, RoundedCornerShape(24.dp), ambientColor = SombraCard, spotColor = SombraCard)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        // Ícono naranja
+                        Surface(
+                            shape  = CircleShape,
+                            color  = Naranja.copy(alpha = 0.15f),
+                            modifier = Modifier.size(60.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.Warning, null, tint = Naranja, modifier = Modifier.size(30.dp))
+                            }
+                        }
+                        Text(
+                            "Sin ingreso registrado",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = TextoPrimario,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            "Registrá tu ingreso del mes desde la pantalla de inicio.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextoSecundario,
+                            textAlign = TextAlign.Center
+                        )
                     }
-                    mensajePostFeedback = "Gasto registrado"
-                    clariEstado = ClariState.POST_FEEDBACK
-                    cerrarGastoRapido()
+                }
+            }
+        }
+
+        // ── Onboarding spotlight ──────────────────────────────
+        if (pasoOnboarding < 2) {
+            OnboardingSpotlight(
+                paso               = pasoOnboarding,
+                boundsCards        = boundsCards,
+                claraPaddingBottom = claraPaddingBottom,
+                onSiguiente        = {
+                    val nuevoPaso = pasoOnboarding + 1
+                    pasoOnboarding = nuevoPaso
+                    prefsOnboarding.edit().putInt("onboarding_paso", nuevoPaso).apply()
                 }
             )
         }
     }
 
+    // ── Gasto Express — entra desde la derecha ────────────
+    AnimatedVisibility(
+        visible = mostrarOverlay,
+        enter   = slideInHorizontally(
+            initialOffsetX = { it },
+            animationSpec  = tween(240, easing = FastOutSlowInEasing)
+        ),
+        exit    = slideOutHorizontally(
+            targetOffsetX = { it },
+            animationSpec = tween(200, easing = FastOutSlowInEasing)
+        )
+    ) {
+        GastoRapidoOverlay(
+            onDismiss = { cerrarGastoRapido() },
+            onConfirmar = { catBackend, monto ->
+                scope.launch {
+                    try {
+                        RetrofitClient.create(SupabaseClient.instance)
+                            .agregarMovimiento(MovimientoRequest("gasto", catBackend, "Gasto rápido", monto))
+                    } catch (_: Exception) {}
+                }
+                mensajePostFeedback = "Gasto registrado"
+                clariEstado = ClariState.POST_FEEDBACK
+                cerrarGastoRapido()
+            }
+        )
+    }
+}
 
 // ═══════════════════════════════════════════════════════════
 // CÍRCULO CONTRAYÉNDOSE

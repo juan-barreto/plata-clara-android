@@ -6,11 +6,22 @@ data class MensajeChat(
     val content: String
 )
 
-// Lo que mandamos al backend
+// Categoría serializable para mandar al backend
+data class CategoriaContexto(
+    val nombre: String,
+    val gastado: Double,
+    val presupuesto: Double
+)
+
+// Lo que mandamos al backend — incluye contexto financiero del usuario
 data class AsistenteRequest(
     val mensaje: String,
     val historial: List<MensajeChat>,
-    val nombre: String = "Usuario"
+    val nombre: String = "Usuario",
+    val ingreso: Double = 0.0,
+    val gastos: Double = 0.0,
+    val balance: Double = 0.0,
+    val categorias: List<CategoriaContexto> = emptyList()
 )
 
 // Lo que recibimos del backend

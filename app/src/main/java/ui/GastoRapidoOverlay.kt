@@ -57,7 +57,11 @@ val categoriasGastoRapido = listOf(
 // Moto E22 (~595dp) → pantallaChica = true → tamaños reducidos.
 // ═══════════════════════════════════════════════════════════
 @Composable
-fun GastoRapidoOverlay(onDismiss: () -> Unit, onConfirmar: (String, Double) -> Unit) {
+fun GastoRapidoOverlay(
+    sinIngreso: Boolean = false,
+    onDismiss: () -> Unit,
+    onConfirmar: (String, Double) -> Unit
+) {
     var monto      by remember { mutableStateOf("") }
     var cat        by remember { mutableStateOf<CategoriaGastoRapido?>(null) }
     var confirmado by remember { mutableStateOf(false) }
@@ -74,9 +78,11 @@ fun GastoRapidoOverlay(onDismiss: () -> Unit, onConfirmar: (String, Double) -> U
                     }
                 }
                 Spacer(Modifier.height(20.dp))
-                Text("¡Registrado!", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextoPrimario)
+                Text("¡Registrado!", style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold, color = TextoPrimario)
                 Spacer(Modifier.height(6.dp))
-                Text("$${fmtGR(monto)}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = VerdePrimario)
+                Text("$${fmtGR(monto)}", style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold, color = VerdePrimario)
                 Spacer(Modifier.height(4.dp))
                 Text(cat!!.nombre, style = MaterialTheme.typography.bodyMedium, color = TextoSecundario)
             }
@@ -86,7 +92,11 @@ fun GastoRapidoOverlay(onDismiss: () -> Unit, onConfirmar: (String, Double) -> U
     }
 
     // ── Responsive ────────────────────────────────────────────
-    BoxWithConstraints(Modifier.fillMaxSize().background(FondoNegro)) {
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .background(FondoNegro)
+    ) {
         val pantallaChica = maxHeight < 700.dp
         val burbujaTam  = if (pantallaChica) 72.dp  else 96.dp
         val tecladoAlto = if (pantallaChica) 44.dp  else 54.dp

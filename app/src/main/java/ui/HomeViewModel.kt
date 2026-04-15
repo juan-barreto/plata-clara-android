@@ -54,6 +54,12 @@ class HomeViewModel(private val context: Context) : ViewModel() {
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
+    // ── Ingreso sugerido para nuevo mes ──────────────────────
+    // null = no mostrar banner
+    // Double = monto del último ingreso base del mes anterior
+    private val _ingresoSugerido = MutableStateFlow<Double?>(null)
+    val ingresoSugerido: StateFlow<Double?> = _ingresoSugerido
+
     init { cargarDatos() }
 
     fun toggleBalanceVisible() { _balanceVisible.value = !_balanceVisible.value }
@@ -66,25 +72,21 @@ class HomeViewModel(private val context: Context) : ViewModel() {
         }
     }
 
+    fun descartarIngresoSugerido() {
+        _ingresoSugerido.value = null
+    }
+
     private fun cargarDatos() {
         viewModelScope.launch { cargarDatosInterno(mostrarLoading = true) }
     }
 
-    // Obtiene el nombre del usuario. Orden de prioridad:
-    // 1. Supabase user_metadata "full_name" (Google lo pone automáticamente, email lo ponemos en el registro)
-    // 2. SharedPreferences "nombre_usuario" (fallback inmediato post-registro, antes de que Supabase actualice)
-    // 3. Email sin dominio ("juan" de "juan@mail.com")
-    // 4. "Usuario" como último recurso
     private fun obtenerNombreUsuario(): String {
         return try {
             val user = SupabaseClient.instance.auth.currentUserOrNull()
             val fullName = user?.userMetadata?.get("full_name")?.toString()?.replace("\"", "")
-
             when {
-                // Supabase tiene el nombre
                 !fullName.isNullOrBlank() -> fullName.split(" ").first().replaceFirstChar { it.uppercase() }
                 else -> {
-                    // Fallback: SharedPreferences (se guarda al registrar)
                     val prefs = context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
                     val nombreLocal = prefs.getString("nombre_usuario", null)
                     when {
@@ -107,56 +109,55 @@ class HomeViewModel(private val context: Context) : ViewModel() {
 
             val nombre = obtenerNombreUsuario()
 
-            val ipcDeferred = viewModelScope.async {
+            val ipcDeferred         = viewModelScope.async {
                 try { RetrofitClient.create(SupabaseClient.instance).getIpc() } catch (e: Exception) { emptyList() }
             }
-            val historialDeferred = viewModelScope.async {
+            val historialDeferred   = viewModelScope.async {
                 try { RetrofitClient.create(SupabaseClient.instance).getHistorial() } catch (e: Exception) { emptyList() }
             }
             val presupuestoDeferred = viewModelScope.async {
                 try { RetrofitClient.create(SupabaseClient.instance).getPresupuesto("mensual") } catch (e: Exception) { emptyList() }
             }
-            // Agregá este deferred junto a los otros tres
             val presupuestosDeferred = viewModelScope.async {
                 try { RetrofitClient.create(SupabaseClient.instance).getPresupuestosCategorias() }
                 catch (_: Exception) { emptyMap() }
             }
 
-            val ipcDatos = ipcDeferred.await()
-            val historial = historialDeferred.await()
-            val movimientos = presupuestoDeferred.await()
+            val ipcDatos          = ipcDeferred.await()
+            val historial         = historialDeferred.await()
+            val movimientos       = presupuestoDeferred.await()
             val presupuestosPorCat = presupuestosDeferred.await()
 
             var ipcUltimo: String? = null
             var ipcAnterior: String? = null
             if (ipcDatos.size >= 2) {
-                val ultimo = ipcDatos[ipcDatos.size - 1]
+                val ultimo    = ipcDatos[ipcDatos.size - 1]
                 val penultimo = ipcDatos[ipcDatos.size - 2]
                 val variacion = ((ultimo.valor - penultimo.valor) / penultimo.valor) * 100
-                val partes = ultimo.fecha.split("-")
-                val meses = listOf("","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic")
-                val mes = meses[partes[1].toInt()]
-                val anio = partes[0]
+                val partes    = ultimo.fecha.split("-")
+                val meses     = listOf("","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic")
+                val mes       = meses[partes[1].toInt()]
+                val anio      = partes[0]
                 ipcUltimo = "IPC $mes $anio: ${String.format("%.1f", variacion)}%"
                 if (ipcDatos.size >= 3) {
                     val antepenultimo = ipcDatos[ipcDatos.size - 3]
-                    val variacionAnt = ((penultimo.valor - antepenultimo.valor) / antepenultimo.valor) * 100
+                    val variacionAnt  = ((penultimo.valor - antepenultimo.valor) / antepenultimo.valor) * 100
                     ipcAnterior = "ant: ${String.format("%.1f", variacionAnt)}%"
                 }
             }
 
-            val ultimoAlquiler = historial.lastOrNull()
+            val ultimoAlquiler  = historial.lastOrNull()
             val diasParaAjuste: Long? = try {
                 if (ultimoAlquiler != null) {
-                    val fechaInicio = java.time.LocalDate.parse(ultimoAlquiler.fecha_inicio)
-                    val proximoAjuste = fechaInicio.plusMonths(3)
+                    val fechaInicio    = java.time.LocalDate.parse(ultimoAlquiler.fecha_inicio)
+                    val proximoAjuste  = fechaInicio.plusMonths(3)
                     java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), proximoAjuste)
                 } else null
             } catch (e: Exception) { null }
 
             val totalIngresos = movimientos.filter { it.tipo == "ingreso" }.sumOf { it.monto }
-            val totalGastos = movimientos.filter { it.tipo == "gasto" }.sumOf { it.monto }
-            val balance = totalIngresos - totalGastos
+            val totalGastos   = movimientos.filter { it.tipo == "gasto" }.sumOf { it.monto }
+            val balance       = totalIngresos - totalGastos
 
             val gastosPorCategoria = movimientos
                 .filter { it.tipo == "gasto" }
@@ -164,14 +165,42 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 .mapValues { (_, items) -> items.sumOf { it.monto } }
 
             val categoriasConocidas = listOf("supermercado", "transporte", "comida/salidas", "servicios", "salud")
-            val gastosVarios = gastosPorCategoria.filter { it.key !in categoriasConocidas }.values.sum()
+            val gastosVarios        = gastosPorCategoria.filter { it.key !in categoriasConocidas }.values.sum()
 
             val categorias = (categoriasConocidas + "varios").map { cat ->
                 CategoriaResumen(
-                    nombre     = cat,
-                    gastado    = if (cat == "varios") gastosVarios else (gastosPorCategoria[cat] ?: 0.0),
-                    presupuesto = presupuestosPorCat[cat] ?: 0.0  // ← ahora viene de Supabase
+                    nombre      = cat,
+                    gastado     = if (cat == "varios") gastosVarios else (gastosPorCategoria[cat] ?: 0.0),
+                    presupuesto = presupuestosPorCat[cat] ?: 0.0
                 )
+            }
+
+            // ── Verificar ingreso recurrente para nuevo mes ───────
+            // Si este mes no tiene ingreso base pero el mes anterior sí,
+            // sugerimos repetirlo automáticamente
+            val mesActual = java.time.YearMonth.now().toString() // "2026-04"
+            val tieneIngresoEsteMes = movimientos.any {
+                it.tipo == "ingreso" &&
+                        it.descripcion?.contains("Ingreso base", ignoreCase = true) == true &&
+                        it.fecha.startsWith(mesActual)
+            }
+
+            if (!tieneIngresoEsteMes) {
+                try {
+                    val movimientosAnteriores = RetrofitClient.create(SupabaseClient.instance)
+                        .getPresupuesto("mensual_anterior")
+                    val ultimoIngresoBase = movimientosAnteriores
+                        .filter {
+                            it.tipo == "ingreso" &&
+                                    it.descripcion?.contains("Ingreso base", ignoreCase = true) == true
+                        }
+                        .maxByOrNull { it.fecha }
+                    _ingresoSugerido.value = ultimoIngresoBase?.monto
+                } catch (_: Exception) {
+                    _ingresoSugerido.value = null
+                }
+            } else {
+                _ingresoSugerido.value = null
             }
 
             val consejos = listOf(
@@ -187,13 +216,23 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 "Una canasta básica familiar supera los $800.000 — revisá si tu presupuesto la cubre."
             )
             val diaDelAnio = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR)
-
+            // Guardar balance en SharedPreferences para la notificación local
+            val userId = try { SupabaseClient.instance.auth.currentUserOrNull()?.id ?: "guest" } catch (e: Exception) { "guest" }
+            context.getSharedPreferences("plata_clara_$userId", Context.MODE_PRIVATE)
+                .edit()
+                .putLong("balance_disponible", balance.toLong())
+                .apply()
             _uiState.value = HomeUiState.Exito(
-                nombre = nombre, ipcUltimo = ipcUltimo, ipcAnterior = ipcAnterior,
-                ultimoAlquiler = ultimoAlquiler, diasParaAjuste = diasParaAjuste,
-                consejo = consejos[diaDelAnio % consejos.size],
-                balance = balance, totalIngresos = totalIngresos, totalGastos = totalGastos,
-                categorias = categorias
+                nombre         = nombre,
+                ipcUltimo      = ipcUltimo,
+                ipcAnterior    = ipcAnterior,
+                ultimoAlquiler = ultimoAlquiler,
+                diasParaAjuste = diasParaAjuste,
+                consejo        = consejos[diaDelAnio % consejos.size],
+                balance        = balance,
+                totalIngresos  = totalIngresos,
+                totalGastos    = totalGastos,
+                categorias     = categorias
             )
         } catch (e: Exception) {
             _uiState.value = HomeUiState.Error(e.message ?: "Error desconocido")
@@ -208,14 +247,14 @@ class HomeViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
+
     fun editarIngresoBase(nuevoMonto: Double, onExito: () -> Unit, onError: () -> Unit) {
         viewModelScope.launch {
             try {
-                val movimientos = RetrofitClient.create(SupabaseClient.instance).getPresupuesto("mensual")
-                val ingresoBase = movimientos.firstOrNull {
+                val movimientos   = RetrofitClient.create(SupabaseClient.instance).getPresupuesto("mensual")
+                val ingresoBase   = movimientos.firstOrNull {
                     it.tipo == "ingreso" && it.descripcion?.contains("Ingreso base", ignoreCase = true) == true
                 }
-
                 if (ingresoBase != null) {
                     RetrofitClient.create(SupabaseClient.instance).editarMovimiento(
                         id      = ingresoBase.id,
@@ -241,6 +280,5 @@ class HomeViewModel(private val context: Context) : ViewModel() {
                 recargar()
             } catch (_: Exception) {}
         }
-    }  // ← cierra guardarPresupuestoCategoria
-
+    }
 }

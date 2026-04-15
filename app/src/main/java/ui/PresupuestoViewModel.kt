@@ -14,6 +14,7 @@ import com.candlelabs.gestionpersonal.model.MovimientoRequest
 import com.candlelabs.gestionpersonal.model.MovimientoEditRequest
 import com.candlelabs.gestionpersonal.network.RetrofitClient
 import com.candlelabs.gestionpersonal.network.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -62,6 +63,7 @@ class PresupuestoViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = PresupuestoUiState.Cargando
             try {
+                SupabaseClient.instance.auth.awaitInitialization() // ← agregar esto
                 val movimientos = RetrofitClient.create(SupabaseClient.instance).getPresupuesto(_filtro.value)
                 _uiState.value = PresupuestoUiState.Exito(movimientos)
             } catch (e: Exception) {
@@ -74,6 +76,7 @@ class PresupuestoViewModel : ViewModel() {
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
+                SupabaseClient.instance.auth.awaitInitialization() // ← agregar
                 val movimientos = RetrofitClient.create(SupabaseClient.instance).getPresupuesto(_filtro.value)
                 _uiState.value = PresupuestoUiState.Exito(movimientos)
             } catch (e: Exception) {

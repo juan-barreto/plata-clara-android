@@ -2,10 +2,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Permisos de red y almacenamiento -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.VIBRATE"/>
+
+    <!-- Notificaciones locales: requerido en Android 13+ (API 33+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- Alarmas exactas: necesario para que el recordatorio llegue a la hora exacta -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+
+    <!-- SOLO TELÉFONOS: excluye tablets de Google Play -->
+    <uses-feature android:name="android.hardware.telephony" android:required="true" />
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="true" />
 
     <application
         android:allowBackup="true"
@@ -53,6 +64,11 @@
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
+        <!-- Receptor que dispara la notificación cuando llega la alarma -->
+        <receiver
+            android:name=".ui.NotificationReceiver"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.candlelabs.gestionpersonal.provider"
@@ -76,6 +92,7 @@
 
     </application>
 
+    <!-- Soporte de pantallas: solo teléfonos -->
     <supports-screens
         android:smallScreens="true"
         android:normalScreens="true"

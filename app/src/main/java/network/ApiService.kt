@@ -97,6 +97,16 @@ interface ApiService {
     @Streaming
     @GET("presupuesto/exportar/pdf")
     suspend fun exportarPdf(@Query("filtro") filtro: String): retrofit2.Response<okhttp3.ResponseBody>
+
+    // Mercado Pago — trae los movimientos del usuario
+    @GET("mp/movimientos")
+    suspend fun getMpMovimientos(): List<Map<String, Any>>
+
+    // Mercado Pago — desconecta la cuenta
+    @DELETE("mp/desconectar")
+    suspend fun desconectarMp(): MensajeResponse
+
+
 }
 
 

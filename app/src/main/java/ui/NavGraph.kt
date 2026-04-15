@@ -38,6 +38,7 @@ object Rutas {
     const val DOLAR_DETALLE = "dolar_detalle/{casa}/{nombre}"
     const val RESET_PASSWORD = "reset_password?token_hash={token_hash}&type={type}"
 
+    const val MERCADO_PAGO = "mercado_pago"
     fun dolarDetalleRuta(casa: String, nombre: String) = "dolar_detalle/$casa/$nombre"
 }
 

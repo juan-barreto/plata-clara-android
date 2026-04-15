@@ -1,5 +1,6 @@
 package com.candlelabs.gestionpersonal.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,16 +19,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.candlelabs.gestionpersonal.R
 import com.candlelabs.gestionpersonal.ui.theme.*
 
-// ═══════════════════════════════════════════════════════════
-// MAIN NAV BAR
-// Barra de navegación inferior con ítems izquierda/derecha
-// y espacio central para Clara.
-// ═══════════════════════════════════════════════════════════
+val AzulMP = Color(0xFF00B1EA)
 
 data class ItemNavegacion(val ruta: String, val iconoRes: Int, val etiqueta: String)
-data class ItemMas(val ruta: String, val icono: ImageVector, val titulo: String, val subtitulo: String)
+data class ItemMas(
+    val ruta: String,
+    val icono: ImageVector,
+    val titulo: String,
+    val subtitulo: String,
+    val iconoRes: Int? = null  // drawable PNG propio, opcional
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,10 +46,12 @@ fun MainNavBar(
 
     var mostrarMenuMas by remember { mutableStateOf(false) }
 
-    // ── Menú Más ──────────────────────────────────────────────
     if (mostrarMenuMas) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
         ModalBottomSheet(
             onDismissRequest = { mostrarMenuMas = false },
+            sheetState = sheetState,
             containerColor = Color(0xFF111111)
         ) {
             Column(
@@ -60,6 +66,7 @@ fun MainNavBar(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 itemsMas.forEach { item ->
+                    val esMp = item.ruta == Rutas.MERCADO_PAGO
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -71,23 +78,44 @@ fun MainNavBar(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        // ── Ícono: MP usa imagen propia, el resto usa vector ──
                         Surface(
                             shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                            color = VerdeOscuro,
+                            color = if (esMp) AzulMP.copy(alpha = 0.15f) else VerdeOscuro,
                             modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(item.icono, null, tint = VerdePrimario, modifier = Modifier.size(24.dp))
+                                when {
+                                    esMp -> Image(
+                                        painterResource(R.drawable.plataclara_mp),
+                                        contentDescription = "Mercado Pago",
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                    item.iconoRes != null -> Icon(
+                                        painterResource(item.iconoRes), null,
+                                        tint = VerdePrimario,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    else -> Icon(
+                                        item.icono, null,
+                                        tint = VerdePrimario,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
                             }
                         }
                         Column {
-                            Text(item.titulo, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = TextoPrimario)
-                            Text(item.subtitulo, style = MaterialTheme.typography.bodySmall, color = TextoSecundario)
+                            Text(item.titulo, style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium, color = TextoPrimario)
+                            Text(item.subtitulo, style = MaterialTheme.typography.bodySmall,
+                                color = TextoSecundario)
                         }
                         Spacer(Modifier.weight(1f))
-                        Icon(Icons.Filled.ChevronRight, null, tint = TextoSecundario, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Filled.ChevronRight, null, tint = TextoSecundario,
+                            modifier = Modifier.size(20.dp))
                     }
-                    if (item != itemsMas.last()) HorizontalDivider(color = Divisor, modifier = Modifier.padding(horizontal = 8.dp))
+                    if (item != itemsMas.last()) HorizontalDivider(color = Divisor,
+                        modifier = Modifier.padding(horizontal = 8.dp))
                 }
                 Spacer(Modifier.height(16.dp))
             }
@@ -115,7 +143,6 @@ fun MainNavBar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Ítems izquierda
             itemsIzquierda.forEach { item ->
                 val sel = rutaActual == item.ruta
                 Column(
@@ -131,19 +158,14 @@ fun MainNavBar(
                         tint = if (sel) VerdePrimario else Color(0xFF444444)
                     )
                     Spacer(Modifier.height(2.dp))
-                    Text(
-                        item.etiqueta,
-                        style = MaterialTheme.typography.labelSmall,
+                    Text(item.etiqueta, style = MaterialTheme.typography.labelSmall,
                         color = if (sel) VerdePrimario else Color(0xFF444444),
-                        modifier = Modifier.offset(y = 4.dp)
-                    )
+                        modifier = Modifier.offset(y = 4.dp))
                 }
             }
 
-            // Espacio central — Clara vive acá
             Spacer(Modifier.weight(1f))
 
-            // Ítems derecha
             itemsDerecha.forEach { item ->
                 val sel = rutaActual == item.ruta
                 Column(
@@ -159,34 +181,30 @@ fun MainNavBar(
                         tint = if (sel) VerdePrimario else Color(0xFF444444)
                     )
                     Spacer(Modifier.height(2.dp))
-                    Text(
-                        item.etiqueta,
-                        style = MaterialTheme.typography.labelSmall,
+                    Text(item.etiqueta, style = MaterialTheme.typography.labelSmall,
                         color = if (sel) VerdePrimario else Color(0xFF444444),
-                        modifier = Modifier.offset(y = 4.dp)
-                    )
+                        modifier = Modifier.offset(y = 4.dp))
                 }
             }
 
             // Botón Más
-            val masSel = rutaActual in listOf(Rutas.PRESUPUESTO, Rutas.HISTORIAL, Rutas.INFO, Rutas.PERFIL)
+            val masSel = rutaActual in listOf(
+                Rutas.PRESUPUESTO, Rutas.HISTORIAL, Rutas.INFO, Rutas.PERFIL, Rutas.MERCADO_PAGO
+            )
             Column(
                 modifier = Modifier.weight(1f).clickable { mostrarMenuMas = true },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 Icon(
-                    painterResource(com.candlelabs.gestionpersonal.R.drawable.icon_mas), "Más",
+                    painterResource(R.drawable.icon_mas), "Más",
                     Modifier.size(24.dp).offset(y = 4.dp),
                     tint = if (masSel) VerdePrimario else Color(0xFF444444)
                 )
                 Spacer(Modifier.height(2.dp))
-                Text(
-                    "Más",
-                    style = MaterialTheme.typography.labelSmall,
+                Text("Más", style = MaterialTheme.typography.labelSmall,
                     color = if (masSel) VerdePrimario else Color(0xFF444444),
-                    modifier = Modifier.offset(y = 4.dp)
-                )
+                    modifier = Modifier.offset(y = 4.dp))
             }
         }
     }

@@ -33,7 +33,9 @@ fun EditarCategoriaDialog(
     onGuardar: (Double) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var monto by remember { mutableStateOf(categoria.presupuesto.toLong().toString()) }
+    var monto by remember { mutableStateOf(
+        if (categoria.presupuesto > 0) categoria.presupuesto.toLong().toString() else ""
+    ) }
     var mostrarError by remember { mutableStateOf(false) }
     var mensajeError by remember { mutableStateOf("") }
 

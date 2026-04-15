@@ -3,22 +3,7 @@ package com.candlelabs.gestionpersonal.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -29,20 +14,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,44 +27,58 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.candlelabs.gestionpersonal.R
+import com.candlelabs.gestionpersonal.model.CategoriaContexto
+import com.candlelabs.gestionpersonal.ui.theme.*
 
 @Composable
-fun AsistenteScreen() {
+fun AsistenteScreen(homeViewModel: HomeViewModel? = null) {
 
-    val context = LocalContext.current
-    val viewModel: AsistenteViewModel = viewModel(
-        factory = AsistenteViewModel.factory(context)
-    )
-    val mensajes by viewModel.mensajes.collectAsState()
+    val context   = LocalContext.current
+    val viewModel: AsistenteViewModel = viewModel(factory = AsistenteViewModel.factory(context))
+    val mensajes  by viewModel.mensajes.collectAsState()
     val esperando by viewModel.esperando.collectAsState()
-    var input by remember { mutableStateOf("") }
+    var input     by remember { mutableStateOf("") }
+
+    // ── Inyectar contexto financiero desde HomeViewModel ─────────
+    // Cada vez que el HomeViewModel tiene datos nuevos, se los pasamos
+    // a Clara para que pueda responder con información real del usuario
+    val uiStateHome by (homeViewModel?.uiState ?: return).collectAsState()
+    LaunchedEffect(uiStateHome) {
+        if (uiStateHome is HomeUiState.Exito) {
+            val datos = uiStateHome as HomeUiState.Exito
+            viewModel.actualizarContexto(
+                ingreso    = datos.totalIngresos,
+                gastos     = datos.totalGastos,
+                balance    = datos.balance,
+                categorias = datos.categorias.map {
+                    CategoriaContexto(
+                        nombre      = it.nombre,
+                        gastado     = it.gastado,
+                        presupuesto = it.presupuesto
+                    )
+                }
+            )
+        }
+    }
 
     val listState = rememberLazyListState()
     LaunchedEffect(mensajes.size) {
-        if (mensajes.isNotEmpty()) {
-            listState.animateScrollToItem(mensajes.size - 1)
-        }
+        if (mensajes.isNotEmpty()) listState.animateScrollToItem(mensajes.size - 1)
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F2F2))
+            .background(FondoNegro)
             .windowInsetsPadding(WindowInsets.ime)
     ) {
-
-        // ─── HEADER NEGRO ───────────────────────────────────────
-        // Usamos Box para que el logo, el subtítulo y el botón
-        // se posicionen independientemente dentro del mismo espacio.
-        // Así el Image de 100dp no empuja al Text fuera del header.
+        // ── Header ────────────────────────────────────────────────
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(75.dp)
-                .background(Color(0xFF000000))
+                .fillMaxWidth().height(75.dp)
+                .background(FondoNegro)
                 .padding(horizontal = 16.dp)
         ) {
-            // Logo — centrado verticalmente, alineado a la izquierda
             Image(
                 painter = painterResource(id = R.drawable.clarai),
                 contentDescription = "ClaraAi",
@@ -102,138 +89,89 @@ fun AsistenteScreen() {
                     .offset(x = (-158.dp)),
                 contentScale = ContentScale.FillHeight
             )
-
-            // Subtítulo — pegado al borde inferior izquierdo del header
             Text(
-                text = "Asistente financiero",
+                text  = "Asistente financiero",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF888888),
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(bottom = 15.dp)
+                color = TextoSecundario,
+                modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 15.dp)
             )
-
-            // Botón limpiar — centrado vertical, alineado a la derecha
             IconButton(
-                onClick = { viewModel.limpiarChat() },
+                onClick  = { viewModel.limpiarChat() },
                 modifier = Modifier.align(Alignment.CenterEnd)
             ) {
-                Icon(
-                    Icons.Filled.Delete,
-                    contentDescription = "Limpiar chat",
-                    tint = Color(0xFF888888)
-                )
+                Icon(Icons.Filled.Delete, "Limpiar chat", tint = TextoSecundario)
             }
         }
-
-        // ─── LISTA DE MENSAJES ──────────────────────────────────
+        HorizontalDivider(color = Divisor)
+        // ── Mensajes ──────────────────────────────────────────────
         LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+            state    = listState,
+            modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (mensajes.isEmpty()) {
                 item {
-                    BurbujaMensaje(
-                        mensaje = MensajeChatUI(
-                            rol = "assistant",
-                            contenido = "¡Hola! Soy Clara, tu asistente financiero. " +
-                                    "Podés preguntarme sobre el dólar, la inflación, " +
-                                    "tu contrato de alquiler o cualquier duda sobre " +
-                                    "la economía argentina. ¿En qué te ayudo?"
-                        )
-                    )
+                    BurbujaMensaje(MensajeChatUI(
+                        rol      = "assistant",
+                        contenido = "¡Hola! Soy Clara, tu asistente financiero. Podés preguntarme sobre el dólar, la inflación, tu contrato de alquiler o cualquier duda sobre la economía argentina. ¿En qué te ayudo?"
+                    ))
                 }
             }
-
-            items(mensajes) { mensaje ->
-                BurbujaMensaje(mensaje = mensaje)
-            }
+            items(mensajes) { mensaje -> BurbujaMensaje(mensaje = mensaje) }
         }
 
-        // ─── INPUT ──────────────────────────────────────────────
+        // ── Input ─────────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(FondoCard)
                 .padding(horizontal = 12.dp, vertical = 8.dp)
-                .padding(bottom = 40.dp), // ← espacio para Clara,
+                .padding(bottom = 40.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
-                value = input,
+                value         = input,
                 onValueChange = { input = it },
-                placeholder = {
-                    Text(
-                        "Preguntale a Clara...",
-                        color = Color(0xFF888888)
-                    )
-                },
-                modifier = Modifier.weight(1f),
-                enabled = !esperando,
+                placeholder   = { Text("Preguntale a Clara...", color = TextoMuted) },
+                modifier      = Modifier.weight(1f),
+                enabled       = !esperando,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(
-                    onSend = {
-                        if (input.isNotBlank()) {
-                            viewModel.enviarMensaje(input)
-                            input = ""
-                        }
-                    }
-                ),
+                keyboardActions = KeyboardActions(onSend = {
+                    if (input.isNotBlank()) { viewModel.enviarMensaje(input); input = "" }
+                }),
                 maxLines = 3,
-                shape = RoundedCornerShape(24.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF00B872),
-                    unfocusedBorderColor = Color(0xFFDDDDDD),
-                    cursorColor = Color(0xFF00B872)
+                shape    = RoundedCornerShape(24.dp),
+                colors   = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor   = VerdePrimario,
+                    unfocusedBorderColor = Divisor,
+                    cursorColor          = VerdePrimario,
+                    focusedTextColor     = TextoPrimario,
+                    unfocusedTextColor   = TextoPrimario
                 )
             )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
+            Spacer(Modifier.width(8.dp))
             IconButton(
-                onClick = {
-                    if (input.isNotBlank()) {
-                        viewModel.enviarMensaje(input)
-                        input = ""
-                    }
-                },
-                enabled = !esperando && input.isNotBlank(),
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (input.isNotBlank() && !esperando) Color(0xFF00B872)
-                        else Color(0xFFDDDDDD)
-                    )
+                onClick  = { if (input.isNotBlank()) { viewModel.enviarMensaje(input); input = "" } },
+                enabled  = !esperando && input.isNotBlank(),
+                modifier = Modifier.size(44.dp).clip(CircleShape)
+                    .background(if (input.isNotBlank() && !esperando) VerdePrimario else Divisor)
             ) {
                 if (esperando) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = Color.White
-                    )
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
                 } else {
-                    Icon(
-                        Icons.Filled.Send,
-                        contentDescription = "Enviar",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(Icons.Filled.Send, "Enviar", tint = Color.White, modifier = Modifier.size(20.dp))
                 }
             }
         }
     }
 }
 
-// ─── BURBUJA DE MENSAJE ─────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// BURBUJA DE MENSAJE
+// ═══════════════════════════════════════════════════════════
 @Composable
 fun BurbujaMensaje(mensaje: MensajeChatUI) {
     val esUsuario = mensaje.rol == "user"
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (esUsuario) Arrangement.End else Arrangement.Start
@@ -241,44 +179,24 @@ fun BurbujaMensaje(mensaje: MensajeChatUI) {
         Box(
             modifier = Modifier
                 .widthIn(max = 280.dp)
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 16.dp,
-                        topEnd = 16.dp,
-                        bottomStart = if (esUsuario) 16.dp else 4.dp,
-                        bottomEnd = if (esUsuario) 4.dp else 16.dp
-                    )
-                )
-                .background(
-                    if (esUsuario) Color(0xFF00B872)
-                    else Color.White
-                )
+                .clip(RoundedCornerShape(
+                    topStart    = 16.dp, topEnd = 16.dp,
+                    bottomStart = if (esUsuario) 16.dp else 4.dp,
+                    bottomEnd   = if (esUsuario) 4.dp else 16.dp
+                ))
+                .background(if (esUsuario) VerdePrimario else FondoCard)
                 .then(
-                    if (!esUsuario) Modifier.border(
-                        width = 0.5.dp,
-                        color = Color(0xFFE0E0E0),
-                        shape = RoundedCornerShape(
-                            topStart = 16.dp,
-                            topEnd = 16.dp,
-                            bottomStart = 4.dp,
-                            bottomEnd = 16.dp
-                        )
-                    )
+                    if (!esUsuario) Modifier.border(0.5.dp, BordeCard, RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 16.dp))
                     else Modifier
                 )
                 .padding(12.dp)
         ) {
             if (mensaje.cargando) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp,
-                    color = Color(0xFF00B872)
-                )
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = VerdePrimario)
             } else {
                 Text(
-                    text = mensaje.contenido,
-                    color = if (esUsuario) Color.White
-                    else Color(0xFF000000),
+                    text  = mensaje.contenido,
+                    color = if (esUsuario) FondoNegro else TextoPrimario,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

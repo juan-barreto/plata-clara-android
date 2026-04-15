@@ -92,6 +92,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     this.email = email
                     this.password = password
                 }
+                guardarUserId()
                 _uiState.value = if (usuarioYaConfiguro()) AuthUiState.Exito else AuthUiState.RegistroExitoso
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Error(
@@ -121,6 +122,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     idToken = googleIdToken.idToken
                     provider = Google
                 }
+                guardarUserId()
                 _uiState.value = if (usuarioYaConfiguro()) AuthUiState.Exito else AuthUiState.RegistroExitoso
             } catch (e: Exception) {
                 _uiState.value = AuthUiState.Error(
@@ -195,6 +197,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                 supabase.auth.awaitInitialization()
                 val session = supabase.auth.currentSessionOrNull()
                 if (session != null) {
+                    guardarUserId()
                     _uiState.value = if (usuarioYaConfiguro()) AuthUiState.Exito else AuthUiState.RegistroExitoso
                 }
             } catch (_: Exception) { }
@@ -219,7 +222,14 @@ class AuthViewModel(private val context: Context) : ViewModel() {
             completarSetup()
         }
     }
-
+    // Guarda el userId en prefs globales para que el NotificationReceiver pueda leerlo
+    private fun guardarUserId() {
+        val userId = supabase.auth.currentUserOrNull()?.id ?: return
+        context.getSharedPreferences("plata_clara_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putString("user_id", userId)
+            .apply()
+    }
     companion object {
         fun factory(context: Context) = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
