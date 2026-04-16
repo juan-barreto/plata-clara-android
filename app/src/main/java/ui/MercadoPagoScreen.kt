@@ -63,9 +63,8 @@ fun MercadoPagoScreen() {
     LaunchedEffect(Unit) {
         try {
             cargando = true
-            val respuesta = RetrofitClient.create(SupabaseClient.instance).getMpMovimientos()
-            conectado = true
-            movimientos = respuesta
+            val estado = RetrofitClient.create(SupabaseClient.instance).getMpEstado()
+            conectado = estado["conectado"] == true
         } catch (e: Exception) {
             conectado = false
         } finally {
@@ -364,13 +363,15 @@ private fun PantallaConectada(
 // ═══════════════════════════════════════════════════════════
 @Composable
 private fun FilaMovimientoMP(mov: Map<String, Any>) {
-    val monto  = (mov["amount"] as? Double) ?: 0.0
-    val tipo   = mov["type"]?.toString() ?: ""
-    val fecha  = mov["date"]?.toString()?.take(10) ?: ""
-    val detalle = mov["description"]?.toString() ?: tipo
+    val monto    = (mov["monto"] as? Double) ?: 0.0
+    val fecha    = mov["fecha"]?.toString() ?: ""
+    val detalle  = mov["nombre"]?.toString() ?: "Pago"
+    val esIngreso = mov["es_gasto"] as? Boolean == false
+    val status   = mov["status"]?.toString()
 
-    val esIngreso = monto > 0
+    if (status != "approved") return
 
+    // Card igual que antes...
     Card(
         Modifier.fillMaxWidth().shadow(4.dp, RoundedCornerShape(14.dp),
             ambientColor = SombraCard, spotColor = SombraCard),

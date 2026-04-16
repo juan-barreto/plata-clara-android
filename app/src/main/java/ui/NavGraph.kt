@@ -90,7 +90,14 @@ fun NavGraph(navController: NavHostController, abrirGastoExpress: Boolean = fals
             )
         }
 
-        composable(Rutas.MAIN) {
+        composable(
+            route = Rutas.MAIN,
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = "com.candlelabs.gestionpersonal://mp-callback?status={status}"
+                }
+            )
+        ) {
             MainScreen(
                 onCerrarSesion = {
                     navController.navigate(Rutas.AUTH) {

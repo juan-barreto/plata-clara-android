@@ -102,6 +102,9 @@ interface ApiService {
     @GET("mp/movimientos")
     suspend fun getMpMovimientos(): List<Map<String, Any>>
 
+    // Verifica si el usuario ya tiene MP conectado
+    @GET("mp/estado")
+    suspend fun getMpEstado(): Map<String, Boolean>
     // Mercado Pago — desconecta la cuenta
     @DELETE("mp/desconectar")
     suspend fun desconectarMp(): MensajeResponse
